@@ -1,0 +1,126 @@
+@charset "UTF-8";
+/* CSS Document */
+
+html, body, .container {
+	height:100%;
+}
+
+.col-sm-6 .panel .panel-body label
+{
+	width:40%;
+	text-align:right;
+	padding-right:5px;
+	margin-bottom: 10px;
+}
+
+.col-sm-6 .panel .panel-body .panel_label
+{
+	width:40%;
+	text-align:right;
+	padding-right:5px;
+	float:left;
+	clear: left;
+}
+
+.col-sm-6 .panel .panel-body input
+{
+	width:55%;
+}
+
+.col-sm-6 .panel .panel-body .panel_content
+{
+	float:left;
+	width: 55%;
+}
+
+.col-sm-6 .panel .panel-body select
+{
+	width:55%;
+}
+
+#venta_observaciones
+{
+	margin-left:15px;
+	margin-right:15px;
+}
+#venta_observaciones #txtObservaciones{
+	width:100%;
+	height:60px;
+}
+
+#panel_totales {
+	width: 40%;
+	right:15px;
+	position:absolute;
+	bottom:0px;
+	background-color: #E8E8E8;
+	border-radius:5px;
+	margin-bottom:5px;
+}
+
+#panel_totales .panel .panel-body label
+{
+	width:40%;
+	text-align:right;
+	padding-right:5px;
+	margin-bottom: 10px;
+}
+
+#panel_totales .panel .panel-body input
+{
+	width:55%;
+	text-align:right;
+}
+
+#panel_totales .panel
+{
+	margin-bottom:0px;
+}
+
+#panel_totales .panel .panel-body select
+{
+	width:55%;
+}
+
+#txtTotal, #lblTotal {
+	font-size:24px;
+}
+
+.jornadatabla{
+
+    width:80%;
+	margin: auto;
+	
+}
+
+.generalidadtabla{
+
+    width:80%;
+	 margin: auto;
+	
+}
+
+.centroboton{
+
+    width:80%;
+	margin: auto;
+}
+
+.titulosbalanceo {
+font-size: 24px !important;
+background-image: linear-gradient(to bottom, #fc7323 0, #df5403 150%);
+filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#fffc7323', endColorstr='#ffdf5403', GradientType=0);
+filter: progid:DXImageTransform.Microsoft.gradient(enabled = false);
+background-repeat: repeat-x;
+color: white;
+margin-top: -30px;
+margin-bottom: 0px;
+border-radius: 5px 5px 0px 0px;
+padding: 15px 30px 15px 30px;
+text-align: center;
+width: 100%;
+
+
+	
+}
+

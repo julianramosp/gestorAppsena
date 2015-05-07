@@ -1,0 +1,33 @@
+<!-- Plantilla para crear detalle de compra, basado en el objeto compra
+Fecha creado: 05/09/2014
+Fecha actualizado: 11/09/2014
+Cambio realizado: Enrutamiento al procesar el formulario, Ln 20
+Fecha actualizado: 17/09/2014
+Cambio realizado: Colocar template al detalle de compra, Ln 8;23-26;34. Renderizar el formulario como tabla, Ln 28-30
+Fecha actualizado: 19/09/2014
+Cambio realizado: Optimizar código Javascript. Se mueve la función regresa() al script biblioteca.js y se invoca método, Ln 23. Colocar título al formulario que crea los productos relacionados con la compra, Ln 18
+Fecha actualizado: 22/09/2014
+Cambio realizado: Implementar cierre de la orden de compra (submit => 'crearprod')(FUENTE:http://stackoverflow.com/questions/866272/how-can-i-build-multiple-submit-buttons-django-form), Ln 25,27.
+Fecha actualizado: 25/09/2014
+Cambio realizado: Integración con el Front End, Ln 24,27,29
+-->
+{% extends "web/base.html" %}
+<html>	
+	<body>
+		<!--<form action="{% url 'creardetallecompra' %}" method="post">-->		
+		{% block title %}
+			Crear detalle para la compra
+		{% endblock %}
+		{% block content %}		
+			<h2>Creaci&oacute;n de la compra - Registro de productos</h2>
+			<br><br><br><form action="" method="post">{% csrf_token %}
+				<table class="table">
+					{{ form.as_table}}
+				</table>
+				<input type="submit" name="crearprod" value="Crear Detalle de compra" class="btn btn-primary"/>
+				<!--<input type="button" name="inventario_btn" value="Regresar al listado" onclick="javascript:regresa()"/>-->
+				<input type="submit" name="cierreoc" value="Regresar al listado" class="btn btn-primary"/>
+			</form>	
+		{% endblock %}	
+	</body>	
+</html>

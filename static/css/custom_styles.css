@@ -1,0 +1,11 @@
+@charset "utf-8";
+/* CSS Document */
+
+#changelist-filter{
+float:right; width:20%
+}
+
+#result_list{
+width:60%; float:left
+}
+

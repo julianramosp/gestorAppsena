@@ -1,0 +1,228 @@
+{% extends base.html" %}
+{% block extra_style %} <style type="text/css">
+    body {
+        font-family: "Lucida Sans";
+        color: #000000; }
+	#tableTop, #tableTop td {
+		border-width:0.4px;
+		border-style:solid;
+		border-color: #000000;
+	}
+	.title {
+		font-size: 18px;
+		padding-top: 15px;
+		padding-left: 20px;
+	}
+	.td_gray {
+		background-color: #f1f1f1;
+		}
+	.td_nombreEmpresa {
+		padding-top:10px;
+		padding-left:10px;
+		font-size:14px;
+	}
+	.td_factura {
+		padding-top:10px;
+		padding-right:10px;
+		font-size:14px;
+	}
+	.td_color {
+		background-color:#f2bc82;
+	}
+	.td_telefono {
+		border-right:#000000 0.5px solid;
+		margin-right:5px;
+		padding-top:3px;
+	}
+	.td_direccion {
+		margin-left: 5px;
+		padding:0px;
+		padding-top:3px;
+	}
+	.td_mini {
+		font-size: 2px;
+	}
+	.th_element {
+		padding-top:5px;
+		font-size:13px;
+	}
+	.td_first_detail {
+		border-right: #000000 solid 0.4px;
+		border-bottom: #000000 solid 0.4px;
+		padding-left:3px;
+		padding-top:3px;
+		padding-right:3px;
+	}
+	.td_detail {
+		border-right: #000000 solid 0.4px;
+		border-left: #000000 solid 0.4px;
+		border-bottom: #000000 solid 0.4px;
+		padding-left:3px;
+		padding-top:3px;
+		padding-right:3px;
+	}
+	.td_last_detail {
+		border-left: #000000 solid 0.4px;
+		border-bottom: #000000 solid 0.4px;
+		padding-left:3px;
+		padding-top:3px;
+		padding-right:3px;
+	}
+	.td_total {
+		padding-top:7px;
+		padding-bottom:5px;
+	}
+	.footerC {
+		text-align:right;
+		font-size:8px;
+	}
+	@page {
+  		margin: 1cm;
+  		margin-bottom: 1cm;
+  	@frame footer {
+    	-pdf-frame-content: footerContent;
+    	bottom: 0.1cm;
+    	margin-left: 1cm;
+    	margin-right: 1cm;
+    	height: 1cm;
+  		}
+	}
+</style> {% endblock %}
+{% block content %}
+
+ <div id="content">
+<table id="title" border="0" cellpadding="0" cellspacing="0" width="100%">
+<tr>
+{% load staticfiles %}
+	<td width="15%" rowspan="4" align="center" valign="middle" class="td_color">
+    &nbsp;
+    <!--pdf:barcode value="ESTO ES UNA PRUEBA" type="code128"
+humanreadable="1" barwidth="0.33mm" barheight="2cm" align="middle">
+--></td>
+    <td width="40%" rowspan="4" align="left" valign="top" class="td_gray td_nombreEmpresa"><span style="20px; margin-top:10px;">{{empresa.Empresa}}</span>
+    </td>
+    <td colspan="2" align="right" valign="top" class="td_gray td_factura"><strong>Factura No. {{venta.Numero_Factura_Venta}}</strong></td>
+</tr>
+<tr>
+  <td colspan="2" class="td_gray"><br></td>
+</tr>
+<tr>
+  <td width="22%" align="right" valign="bottom" class="td_gray td_telefono">Tel. {{empresa.Telefono}}</td>
+  <td width="23%" align="left" valign="middle" class="td_gray td_direccion">Dir: {{empresa.Direccion}}</td>
+</tr>
+<tr>
+  <td align="right" valign="bottom" class="td_gray td_mini">&nbsp;</td>
+  <td width="23%" align="left" valign="middle" class="td_gray td_mini">&nbsp;</td>
+</tr>
+</table>
+<div class="title"><strong>FACTURA DE VENTA:</strong></div>
+<br />
+<div>
+<table width="94%" border="0" align="center" cellpadding="0" cellspacing="0">
+<tr>
+<td width="65%" align="left" valign="top"><strong><span style="font-size:14px">A nombre de:</span></strong><br>
+{{venta.Cliente.Nombre}}<br>
+{{venta.Cliente.Direccion}}<br>
+{{venta.Cliente.Telefono_Fijo}}
+</td>
+<td width="35%" align="left" valign="middle" class="td_color" style="font-size:16px; padding-left:7px; padding-top:8px;"><strong>Fecha de la factura</strong><br>
+{{venta.Fecha|date:"d \d\e F \d\e Y"}}
+</td>
+</tr>
+</table>
+</div>
+<br />
+<div>
+    <table width="100%" border="0" cellpadding="0" cellspacing="0">
+    <tr>
+        <th class="td_color th_element">Referencia</th>
+        <th class="td_gray th_element">Nombre</th>
+        <th class="td_gray th_element">Precio unitario</th>
+        <th class="td_gray th_element">Cantidad</th>
+      	<th class="td_gray th_element">Descuento</th>
+        <th class="td_gray th_element">Subtotal</th>
+    </tr>
+    <tr>
+    	<td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+    </tr>
+    {% if detalleVenta %}
+        {% for detalle in detalleVenta %}
+        <tr>
+            <td width="12%" align="center" valign="middle" class="td_first_detail">{{detalle.Producto.Ref_Producto}}</td>
+            <td width="30%" align="left" valign="middle" class="td_detail">{{detalle.Producto.Nombre_producto}}</td>
+            <td width="16%" align="right" valign="middle" class="td_detail">{{detalle.Valor_Unitario}}</td>
+            <td width="10%" align="center" valign="middle" class="td_detail">{{detalle.Cantidad}}</td>
+            <td width="16%" align="center" valign="middle" class="td_detail">{{detalle.Descuento}}</td>
+            <td width="16%" align="right" valign="middle" class="td_last_detail">{{detalle.SubTotal}}</td>
+      </tr>
+        {% endfor %}
+    {% endif %}
+    <tr>
+    	<td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td align="right" valign="middle" class="td_detail td_total"><span class="td_detail" style="font-size:14px;"><strong>Subtotal</strong></span></td>
+        <td align="right" valign="middle" class="td_last_detail td_total"><span style="font-size:14px;"><strong>{{subtotal}}</strong></span> </td>
+    </tr>
+    <tr>
+    	<td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td align="right" valign="middle" class="td_detail td_total"><span class="td_detail" style="font-size:14px;">Impuesto</span></td>
+        <td align="right" valign="middle" class="td_last_detail td_total"><span style="font-size:14px;">{{venta.Impuesto}}</span></td>
+    </tr>
+    <tr>
+    	<td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td align="right" valign="bottom" class="td_detail td_total"><span style="font-size:18px;"><strong>Total</strong></span></td>
+        <td align="right" valign="bottom" class="td_last_detail td_total"><strong><span style="font-size:18px;">{{venta.Valor_Total_Compra}}</span></strong></td>
+    </tr>
+    </table>
+</div> 
+<br />
+<div>
+    <table width="100%" border="0" cellpadding="0" cellspacing="0">
+        <tr>
+            <td width="20%" class="td_color th_element" style="padding-left:10px;">
+            <span><strong>Observaciones</strong></span>
+            </td>
+            <td width="80%" class="td_gray">&nbsp;</td>
+        </tr>
+        <tr>
+        	<td colspan="2" style="padding:5px;">
+            {{venta.Observaciones}}
+            </td>
+        </tr>
+    </table>    
+</div>
+<br />
+<br />
+<div>
+    <table width="100%" border="0" cellpadding="0" cellspacing="0">
+        <tr>
+            <td width="20%" class="td_color th_element" style="padding-left:10px;">
+            <span><strong>Forma de Pago</strong></span>
+            </td>
+            <td width="80%" class="td_gray">&nbsp;</td>
+        </tr>
+        <tr>
+        	<td colspan="2" style="padding:5px; font-size:14px;">
+            {{venta.Forma_Pago.Nombre}}
+            </td>
+        </tr>
+    </table>    
+</div>
+
+</div>
+<div class="footerC" id="footerContent">Desarrollado por SENA - Centro de Manufactura en Textiles y Cuero</div>
+{% endblock %}
+

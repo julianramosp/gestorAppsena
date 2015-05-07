@@ -1,0 +1,581 @@
+{% extends "web/base.html" %}
+
+{% block title %}
+	Módulo de Facturación
+{% endblock %}
+
+{% block content %}
+
+<script>
+
+var pre_venta_id = 0;
+var products = new Array();
+var u_venta = new Array();
+var row_actual = 0;
+		$(function(){
+			loadProductos();
+		});
+		function loadProductos() {
+			var request = $.ajax({
+				url: "/web/ObtenerProductos",
+				type: "GET",
+			 	dataType: "json"
+			});
+			 
+			request.done(function( msg ) {
+				
+				$.each(msg, function(index, value) {
+					products.push({productid:value.pk, name:value.pk});
+				});
+				
+			 	loadUVenta();
+			  
+			});
+			 
+			request.fail(function( jqXHR, textStatus ) {
+			  	alert( "Request failed: " + textStatus );
+			});
+		}
+		
+		function loadUVenta() {
+			var request = $.ajax({
+				url: "/web/ObtenerUnidades",
+				type: "GET",
+			 	dataType: "json"
+			});
+			 
+			request.done(function( msg ) {
+				
+				$.each(msg, function(index, value) {
+					
+					u_venta.push({id:value.id, name:value.name});
+					
+				});
+				
+			 	loadGrid();
+			  
+			});
+			 
+			request.fail(function( jqXHR, textStatus ) {
+			  	alert( "Request failed: " + textStatus );
+			});	
+		}
+		
+		function loadGrid() {
+			$('#tt').datagrid({
+				title:'Detalle Factura',
+				//iconCls:'icon-edit',
+				width:'100%',
+				height:200,
+				singleSelect:true,
+				idField:'referencia',
+				url:'data/datagrid_data.json',
+				columns:[[
+					{field:'id',title:'id', hidden:true, 
+					editor:{
+						type:'numberbox'
+						}
+					},
+					{field:'referencia',title:'Referencia',width:'8%',align:'center',
+						formatter:function(value){
+							for(var i=0; i<products.length; i++){
+								if (products[i].productid == value) return products[i].name;
+							}
+							return value;
+						},
+						editor:{
+							type:'combobox',
+							options:{
+								valueField:'productid',
+								textField:'name',
+								data:products,
+								required:true,
+								onSelect:function(rec){
+									//alert(rec);
+									var request = $.ajax({
+										url: "/web/ObtenerProductoPorReferencia",
+										type: "GET",
+										data: { referencia : rec.productid },
+										dataType: "json"
+									});
+									 
+									request.done(function( msg ) {
+										
+										//alert(JSON.stringify(msg));
+										
+										var editors = $('#tt').datagrid('getEditors', row_actual);
+											
+										var n0 = $(editors[1].target);
+										var n1 = $(editors[2].target);
+										var n2 = $(editors[3].target);
+										var n3 = $(editors[4].target);
+										var n4 = $(editors[5].target);
+										var n5 = $(editors[6].target);
+										var n6 = $(editors[7].target);
+										var n7 = $(editors[8].target);
+										var n8 = $(editors[9].target);
+										var n9 = $(editors[10].target);
+										//alert(JSON.stringify(msg[0].fields));
+										n1.val(msg[0].fields.Nombre_producto);
+										n2.val(msg[0].fields.Observaciones);
+										n3.combobox('setValue', msg[0].fields.Unidad_Venta);
+										
+										if(n4.numberbox('getValue') == "")
+										{
+											n4.numberbox('setValue',0);
+										}
+										
+										n5.numberbox('setValue', msg[0].fields.Valor_Unitario);
+										//n6.numberbox('setValue', 1);
+										var subtotal = n5.numberbox('getValue') * n6.numberbox('getValue')
+										n8.numberbox('setValue', subtotal);
+										n9.numberbox('setValue', msg[0].fields.Impuesto);
+									  
+									});
+									
+									request.fail(function( jqXHR, textStatus ) {
+										alert( "Request failed: " + textStatus );
+									});
+								}
+							}
+						}
+					},
+					{field:'nombre',title:'Nombre',width:'15%',align:'center',
+						editor:{
+							type:'text'
+						}
+					},
+					{field:'observaciones',title:'Observaciones',width:'14%',align:'center',editor:{type:'text'}},
+					{field:'univenta',title:'U. Venta',width:'8%',align:'center',
+						formatter:function(value){
+								for(var i=0; i<u_venta.length; i++){
+									if (u_venta[i].id == value) return u_venta[i].name;
+								}
+								return value;
+							},
+							editor:{
+								type:'combobox',
+								options:{
+									valueField:'id',
+									textField:'name',
+									data:u_venta,
+								}
+							}
+					},
+					{field:'descuento',title:'Descuento',width:'8%',align:'center',
+					editor:{
+						type:'numberbox'
+						}
+					},
+					{field:'valunitario',title:'Valor Unitario',width:'10%',align:'center',
+					editor:{
+						type:'numberbox',
+						options:{
+								disabled:true
+							}
+						}
+					},
+					{field:'cantidad',title:'Cantidad',width:'7%',align:'center',
+					editor:{
+						type:'numberbox',
+						options:{
+							required: true
+							}
+						}
+					},
+					{field:'ubicación',title:'Ubicación',width:'10%',align:'center',
+						editor:{
+							type:'text'
+						}
+					},
+					{field:'subtotal',title:'Subtotal',width:'10%',align:'center',
+					editor:{
+						type:'numberbox',
+						options:{
+								disabled:true
+							}
+						}
+					},
+					{field:'impuesto',title:'Impuesto', hidden:true, 
+					editor:{
+						type:'numberbox',
+						options:{
+								precision:2
+							}
+						}
+					},
+					{field:'action',title:'Acciones',width:'12%',align:'center',
+						formatter:function(value,row,index){
+							if (row.editing){
+								var s = '<a href="#" onclick="saverow(this)">Guardar</a> ';
+								var c = '<a href="#" onclick="cancelrow(this)">Cancelar</a>';
+								return s+c;
+							} else {
+								var e = '<a href="#" onclick="editrow(this)">Editar</a> ';
+								var d = '<a href="#" onclick="deleterow(this)">Eliminar</a>';
+								return e+d;
+							}
+						}
+					}
+				]],
+				onBeforeEdit:function(index,row){
+					row.editing = true;
+					updateActions(index);
+				},
+				onAfterEdit:function(index,row){
+					var i = 0;
+					var subtotal = 0;
+					var impuesto = 0;
+					var total = 0;
+					var rows = $('#tt').datagrid('getRows');    // get current page rows
+					for(i = 0; i<$('#tt').datagrid('getData').total; i++)
+					{
+						var row_post = rows[i];
+						subtotal += Number(row_post.subtotal);
+						impuesto += Number(row_post.impuesto) * Number(row_post.subtotal);
+					}
+					$("#txtSubtotal").val(subtotal);
+					$("#txtImpuesto").val(impuesto);
+					$("#txtTotal").val(subtotal + impuesto);
+                    //alert("guardar: " + JSON.stringify(row));
+					
+                    if (row.id == "")
+                    {
+					  var request = $.ajax({
+					   url: "/web/venta/InsertarPreDetalleProducto",
+					   type: "GET",
+					   data: { Descuento : row.descuento, Cantidad : row.cantidad, Observaciones : row.observaciones, Producto : row.referencia, PreVenta : pre_venta_id, Valor_Unitario : row.valunitario, SubTotal : row.subtotal},
+					   dataType: "json"
+					  });
+					  
+					  request.done(function( msg ) {
+						row.id = Number(msg[0].preDetalleVenta);
+						pre_venta_id = Number(msg[0].preVenta);
+						$("#_id").val(msg[0].preVenta);
+					  });
+					  
+					  request.fail(function( jqXHR, textStatus ) {
+					   alert( "Request failed: " + textStatus );
+					  });
+                    }
+					else
+					{ 
+						var request = $.ajax({
+						   url: "/web/venta/ActualizarPreDetalleProducto",
+						   type: "GET",
+						   data: { Id: row.id, Descuento : row.descuento, Cantidad : row.cantidad, Observaciones : row.observaciones, Producto : row.referencia, PreVenta : pre_venta_id, Valor_Unitario : row.valunitario, SubTotal : row.subtotal},
+						   dataType: "json"
+						  });
+						  
+						  request.done(function( msg ) {
+							
+							
+						  });
+						  
+						  request.fail(function( jqXHR, textStatus ) {
+						   alert( "Request failed: " + textStatus );
+						  });
+					}
+					
+					row.editing = false;
+							updateActions(index);
+					
+				},
+				onCancelEdit:function(index,row){
+					row.editing = false;
+					updateActions(index);
+				},
+				onBeginEdit:function(rowIndex){
+					
+					row_actual = rowIndex;
+					
+					var editors = $('#tt').datagrid('getEditors', rowIndex);
+					var n0 = $(editors[1].target);
+					var n1 = $(editors[2].target);
+        			var n2 = $(editors[3].target);
+					var n3 = $(editors[4].target);
+					var n4 = $(editors[5].target);
+					var n5 = $(editors[6].target);
+					var n6 = $(editors[7].target);
+					var n7 = $(editors[8].target);
+					var n8 = $(editors[9].target);
+					var n9 = $(editors[10].target);
+					
+					n5.add(n4).add(n6).numberbox({
+						onChange:function(){
+							var subtotal = n5.numberbox('getValue') * n6.numberbox('getValue') * (100 - n4.numberbox('getValue'))/100;
+							n8.numberbox('setValue', subtotal);
+						}
+					});
+				}
+			});
+		}
+		
+		function updateActions(index){
+			$('#tt').datagrid('updateRow',{
+				index: index	,
+				//row:{}
+			});
+			
+		}
+		function getRowIndex(target){
+			var tr = $(target).closest('tr.datagrid-row');
+			return parseInt(tr.attr('datagrid-row-index'));
+		}
+		function editrow(target){
+			$('#tt').datagrid('beginEdit', getRowIndex(target));
+		}
+		function deleterow(target){
+			$.messager.confirm('Confirmación','¿Está seguro de eliminar el producto?',function(r){
+				if (r){
+					var row = $('#tt').datagrid('getSelected'); 
+					//alert(JSON.stringify(ele));
+					
+					  var request = $.ajax({
+					   url: "/web/venta/EliminarPreDetalleProducto",
+					   type: "GET",
+					   data: { Id: row.id},
+					   dataType: "json"
+					  });
+					  
+					  request.done(function( msg ) {
+						$('#tt').datagrid('deleteRow', getRowIndex(target));
+					
+						var i = 0;
+						var subtotal = 0;
+						var impuesto = 0;
+						var total = 0;
+						var rows = $('#tt').datagrid('getRows');    // get current page rows
+						for(i = 0; i<$('#tt').datagrid('getData').total; i++)
+						{
+							var row_post = rows[i];
+							subtotal += Number(row_post.subtotal);
+							impuesto += Number(row_post.impuesto) * Number(row_post.subtotal);
+						}
+						$("#txtSubtotal").val(subtotal);
+						$("#txtImpuesto").val(impuesto);
+						$("#txtTotal").val(subtotal + impuesto);
+					  });
+					  
+					  request.fail(function( jqXHR, textStatus ) {
+					   alert( "Request failed: " + textStatus );
+					  });
+					  
+				}
+			});
+		}
+		function saverow(target){
+			$('#tt').datagrid('endEdit', getRowIndex(target));
+		}
+		function cancelrow(target){
+			$('#tt').datagrid('cancelEdit', getRowIndex(target));
+		}
+		function insert(){
+			var row = $('#tt').datagrid('getSelected');
+			if (row){
+				var index = $('#tt').datagrid('getRowIndex', row);
+			} else {
+				index = 0;
+			}
+			$('#tt').datagrid('insertRow', {
+				index: index,
+				row:{
+					//status:'P'
+				}
+			});
+			$('#tt').datagrid('selectRow',index);
+			$('#tt').datagrid('beginEdit',index);
+		}
+	</script>
+
+<h1>Facturación de productos</h1>
+<form method="post" id="_facturaForm">
+<div id="venta_contenedor">
+{% csrf_token %}
+<input name="_id" type="hidden" id="_id" value="0" />
+  <div class="col-sm-6">
+      <div class="panel panel-primary">
+        <div class="panel-heading">
+          <h3 class="panel-title">Datos Generales</h3>
+        </div>
+        <div class="panel-body">
+          
+          	<label for="txtFacturaVenta" style="visibility:hidden;">No. Factura de Venta:</label>
+          	<input name="txtFacturaVenta" type="text" id="txtFacturaVenta" value="0" readonly style="visibility:hidden;">
+          <br />
+          	<label for="selEmpleado">Empleado:</label>
+          	<select name="selEmpleado" id="selEmpleado" required>
+            {% if empleados_list %}
+            		<option value="">...seleccione un empleado</option>
+            	{% for empleado in empleados_list %}
+               		<option value="{{empleado.Documento}}">{{empleado.User.first_name}} {{empleado.User.last_name}}</option>
+                {% endfor %}
+            {% else %}
+            	<option value="">... no hay empleados registrados</option>
+            {% endif %}
+          	</select>
+          <br />
+            <label for="txtFechaFactura">
+            Fecha:</label>
+          <input type="text" name="txtFechaFactura" id="txtFechaFactura">
+  
+        </div>
+      </div>
+    </div><!-- /.col-sm-6 -->
+    
+  <div class="col-sm-6">
+      <div class="panel panel-primary">
+        <div class="panel-heading">
+          <h3 class="panel-title">Datos del Cliente</h3>
+        </div>
+        <div class="panel-body">
+       	  <label for="selCliente"> Cliente:</label>
+          	<select name="selCliente" id="selCliente">
+            {% if clientes_list %}
+            		<option value="">...seleccione un cliente</option>
+            	{% for cliente in clientes_list %}
+               		<option value="{{cliente.Documento}}">{{cliente.Nombre}}</option>
+                {% endfor %}
+            {% else %}
+            	<option value="">... no hay clientes registrados</option>
+            {% endif %}
+          	</select>
+          
+          	<div class="panel_label"><strong>Empresa:</strong></div>
+          	<div class="panel_content" id="txtNombreCliente"></div>
+          
+          	<div class="panel_label"><strong>Contacto:</strong></div>
+          	<div class="panel_content" id="txtNombreContacto"></div>
+          
+          	<div class="panel_label"><strong>Celular:</strong></div>
+          	<div class="panel_content" id="txtCelular"></div>
+          
+          	<div class="panel_label"><strong>Dirección:</strong></div>
+          	<div class="panel_content" id="txtDireccion"></div> 
+        </div>
+      </div>
+    </div><!-- /.col-sm-6 -->
+  
+  <div>
+  
+  
+	
+	<div style="margin:10px 0">
+		<a href="#" class="easyui-linkbutton" onclick="insert()">Insertar Producto</a>
+	</div>
+	
+	<table id="tt"></table>
+  
+  
+  </div>
+  
+  <div id="venta_observaciones">
+  	<p>
+  	  <label for="txtObservaciones">Observaciones:</label>
+  	  <br>
+  	  <textarea name="txtObservaciones" id="txtObservaciones"></textarea>
+    </p>
+    <input name="cancel" type="submit" class="btn btn-default" id="cancel" value="Cancelar" />
+    <input name="preview" type="submit" class="btn btn-success" id="preview" value="Guardar Borrador"/>
+    <input name="create" type="submit" class="btn btn-success" id="create" value="Crear"/>
+  </div>
+    
+  <div id="panel_totales">
+  	<div class="panel panel-primary">
+        <div class="panel-body">
+        	<label for="txtSubtotal">Sub Total:</label>
+            <input name="txtSubtotal" type="text" id="txtSubtotal" value="0">
+            
+            <label for="txtImpuesto">Impuesto:</label>
+            <input name="txtImpuesto" type="text" id="txtImpuesto" value="0">
+            
+            <label id="lblTotal" for="txtTotal">Total:</label>
+            <input name="txtTotal" type="text" id="txtTotal" value="0">
+            
+            <label for="selFormaPago">Forma de Pago:</label>
+            <select name="selFormaPago" id="selFormaPago">
+            {% if forma_pago_list %}
+            		<option value="">...seleccione una forma de pago</option>
+            	{% for forma_pago in forma_pago_list %}
+               		<option value="{{forma_pago.id}}">{{forma_pago.Nombre}}</option>
+                {% endfor %}
+            {% else %}
+            	<option value="">... no hay formas de pago registrados</option>
+            {% endif %}
+            </select>
+        </div>
+  	
+  </div>
+  </div>
+</div>
+</form>
+
+<script>
+$.validator.addMethod("valueNotEquals", function(value, element, arg){
+	return arg != value;
+}, "Value must not equal arg.");
+
+$("#_facturaForm").validate({
+	rules: {
+		selEmpleado: {
+			required: true
+		},
+		selCliente: {
+			required: true
+		},
+		selFormaPago: {
+			required: true
+		}
+	},
+	messages: {
+		selEmpleado: {
+			required: "Seleccione un empleado"
+		},
+		selCliente: {
+			required: "Seleccione un cliente"
+		},
+		selFormaPago: {
+			required: "Seleccione un método de pago"
+		}
+	}
+ });
+</script>
+
+
+<script>
+var currentDate = new Date();
+
+$("#txtFechaFactura").datepicker({ dateFormat: 'dd/mm/yy'});
+
+$("#txtFechaFactura").datepicker("setDate", currentDate);
+
+$( "#selCliente" ).change(function() {
+ 	
+	//alert("valor: " + $( "#selCliente option:selected" ).val());
+  
+  	var documento = $( "#selCliente option:selected" ).val();
+	var request = $.ajax({
+	  url: "/web/ObtenerCliente",
+	  type: "GET",
+	  data: { documento : documento },
+	  dataType: "json"
+	});
+	 
+	request.done(function( msg ) {
+	  //alert(JSON.stringify(msg[0].fields));
+	  $('#txtNombreCliente').html(msg[0].fields.Nombre);
+	  $('#txtNombreContacto').html(msg[0].fields.Contacto);
+	  $('#txtCelular').html(msg[0].fields.Celular);
+	  $('#txtDireccion').html(msg[0].fields.Direccion);
+	  
+	});
+	 
+	request.fail(function( jqXHR, textStatus ) {
+	  alert( "Request failed: " + textStatus );
+	});
+  
+});
+
+</script>
+
+{% endblock %}

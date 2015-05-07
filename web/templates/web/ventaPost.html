@@ -1,0 +1,21 @@
+{% extends "web/base.html" %}
+
+{% block title %}
+	Módulo de Facturación
+{% endblock %}
+
+{% block content %}
+
+<script>
+
+window.onload=function()
+{
+	var url = "/web/factura.pdf?id={{factura.Numero_Factura_Venta}}&empresa={{empresa}}"
+	var win = window.open(url, '_blank');
+  	win.focus();
+};
+
+</script>
+
+
+{% endblock %}

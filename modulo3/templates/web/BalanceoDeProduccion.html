@@ -1,0 +1,785 @@
+{% extends "web/base.html" %}
+
+
+{% block title %}
+	Balanceo de producción
+{% endblock %}
+
+{% block content %}
+<script>
+//archivo ok
+var franjas = new Array();
+var actividades = new Array();
+var row_actual = 0;
+var recursos = new Array();
+var producto_id =  "0";
+
+function loadFranjas() {
+	var request = $.ajax({
+		url: "/modulo3/getTiempoporFranja",
+		type: "GET",
+		dataType: "json"
+	});
+	 
+	 
+	request.done(function( msg ) {
+		
+		$.each(msg, function(index, value) {
+	
+			
+		});
+		loadGrid();
+	  
+	});
+	 
+	request.fail(function( jqXHR, textStatus ) {
+
+	});
+}
+function sumartiempo(v1,v2)
+{
+	var horas1=v1.split(":"); /*Mediante la función split separamos el string por ":" y lo convertimos en array. */ 
+	var horas2=v2.split(":");
+	var horatotale=new Array();
+	for(a=0;a<3;a++) /*bucle para tratar la hora, los minutos y los segundos*/
+	{
+		horas1[a]=(isNaN(parseInt(horas1[a])))?0:parseInt(horas1[a]) /*si horas1[a] es NaN lo convertimos a 0, sino convertimos el valor en entero*/
+		horas2[a]=(isNaN(parseInt(horas2[a])))?0:parseInt(horas2[a])
+		horatotale[a]=(horas1[a]+horas2[a]);/* insertamos la resta dentro del array horatotale[a].*/
+	}
+	var horatotal=new Date()  /*Instanciamos horatotal con la clase Date de javascript para manipular las horas*/
+    horatotal.setHours(horatotale[0]);
+	horatotal.setMinutes(horatotale[1]);
+	horatotal.setSeconds(horatotale[2]);
+	sumahoras = (horatotal.getMinutes()+":"+ horatotal.getSeconds());
+	return horatotal.getHours()+":"+ horatotal.getMinutes()+":"+ horatotal.getSeconds();
+}
+
+function tiempoenminutos(v1)
+{
+	var horas1=v1.split(":"); /*Mediante la función split separamos el string por ":" y lo convertimos en array. */ 
+	
+
+	for(a=0;a<3;a++) /*bucle para tratar la hora, los minutos y los segundos*/
+	{
+		horas1[a]=(isNaN(parseInt(horas1[a])))?0:parseInt(horas1[a]) /*si horas1[a] es NaN lo convertimos a 0, sino convertimos el valor en entero*/
+		
+		
+	}
+	
+	
+	
+	horaenminutos= (horas1[0]*60)+horas1[1]
+    tiempo = horaenminutos+":"+horas1[2]
+    return tiempo	
+	
+}
+function segundosenminutos(time)
+{
+
+var minutes = Math.floor(time  / 60 );
+
+var seconds = time % 60;
+ 
+//Anteponiendo un 0 a los minutos si son menos de 10 
+minutes = minutes < 10 ? '0' + minutes : minutes;
+ 
+//Anteponiendo un 0 a los segundos si son menos de 10 
+seconds = seconds < 10 ? '0' + seconds : seconds;
+//seconds_percent = Math.round(seconds*1.66) 
+return result =  minutes + "." + seconds//_percent;  
+}
+
+function tiempoensegundos(v1)
+{
+	var horas1=v1.split(":"); /*Mediante la función split separamos el string por ":" y lo convertimos en array. */ 
+
+	var horatotale=new Array();
+	for(a=0;a<3;a++) /*bucle para tratar la hora, los minutos y los segundos*/
+	{
+		horas1[a]=(isNaN(parseInt(horas1[a])))?0:parseInt(horas1[a]) /*si horas1[a] es NaN lo convertimos a 0, sino convertimos el valor en entero*/
+	    horatotale[a]=(horas1[a]);/* insertamos la resta dentro del array horatotale[a].*/
+		/*alert("la resta es igual a "+horas1[a])*/
+	}
+	_minutosensegundos= (horatotale[0]*3600)+(horatotale[1]*60)+horatotale[2]
+    return _minutosensegundos;
+	
+	
+}
+
+function minutosensegundos(v1)
+{
+	var horas1=v1.split(":"); /*Mediante la función split separamos el string por ":" y lo convertimos en array. */ 
+
+	var horatotale=new Array();
+	for(a=0;a<2;a++) /*bucle para tratar la hora, los minutos y los segundos*/
+	{
+		horas1[a]=(isNaN(parseInt(horas1[a])))?0:parseInt(horas1[a]) /*si horas1[a] es NaN lo convertimos a 0, sino convertimos el valor en entero*/
+	    horatotale[a]=(horas1[a]);/* insertamos la resta dentro del array horatotale[a].*/
+		/*alert("la resta es igual a "+horas1[a])*/
+	}
+	_minutosensegundos=(horatotale[0]*60)+horatotale[1]
+    return _minutosensegundos;
+	
+	
+}
+
+function loadGrid() {
+	$('#tt').datagrid({
+		title:'Formulario Balanceo de produccion',
+		
+		width:'100%',
+		height:200,
+		singleSelect:true,
+		idField:'Actividad',
+		url:'data/datagrid_data.json',//no es necesario cargar ninguna url
+		columns:[[
+			{field:'id',title:'id', hidden:true, 
+			editor:{
+				type:'numberbox'
+				}
+			},
+			{field:'Actividad',title:'Actividad',width:'25%',align:'center',
+	        
+				formatter:function(value){
+					for(var i=0; i<actividades.length; i++){//actividades es un nuevo arreglo
+						if (actividades[i].id == value) return actividades[i].name;
+					}
+					return value;
+				},
+				editor:{
+					type:'combobox',
+					options:{
+						valueField:'id',
+						textField:'name',
+						url:"/modulo3/ActividadesGuardadas",
+						required:true,
+						onSelect:function(rec){
+						
+									var request = $.ajax({
+										url: "/modulo3/tiempo_actividades",
+										type: "GET",
+										data: { actividades : rec.id },
+										dataType: "json"
+									});
+									
+									request.done(function( msg ) {
+										 
+										//alert(JSON.stringify(msg));
+										var editors = $('#tt').datagrid('getEditors', row_actual);
+									    var n1 = $(editors[2].target);//tiempo estandard
+										var n2 = $(editors[5].target);//tiempo de lote
+										var n3 = $(editors[6].target);//recurso humano
+										_cantidad_lote = $("#lote").val();//captura de valor en cantidad de lote
+										_tiempo_jornada= $("#Tiempo_total").val();
+										_eficiencia = $("#eficiencia").val();
+										_eficiencia = _eficiencia/100;// se divide el valor entre 100 para que se tome como porcentaje
+										
+										//captura de valor de tiempo estandar 
+									     valor_tiempo_estandard= n1.val(msg[0].fields.Tiempo_Estandard);
+										//conversión a segundos para hacerlo operacional
+										tiempo_estandard_segundos = valor_tiempo_estandard.val();
+										 estandard_en_segundos= tiempoensegundos(tiempo_estandard_segundos);
+										 //calculo del tiempo del lote tiempo estandard * cantidad de unidades a fabricar/porcentaje de eficiencia
+										 tiempo_de_lote= Number(estandard_en_segundos *_cantidad_lote);
+										 
+										 el_tiempo_de_lote= Math.round(tiempo_de_lote/_eficiencia)
+										 
+										 //se divide entre 60 para que el resultado sea en segundos, se redondea a dos cifras
+										 resultado_tiempo_lote = el_tiempo_de_lote/ 60
+										 resultado_tiempo_lote = resultado_tiempo_lote.toFixed(2)
+										 //se coloca valor en la casilla correspondiente
+										 n2.val(resultado_tiempo_lote);
+										
+						                 
+										//calculo de recurso humano =  tiempo_de_lote/jornada
+										
+										//conversión del tiempo de la jornada a segundos para realizar operaciones
+										tiempo_jornada_en_segundos=_tiempo_jornada * 60;
+										tiempo_de_lote_en_segundos =resultado_tiempo_lote*60
+										//calculo de recurso humano que es jornada dividido en tiempo del lote
+										recurso_humano = tiempo_de_lote_en_segundos/tiempo_jornada_en_segundos;
+										//redondeo del resultado a 2 decimales
+										recurso_humano= recurso_humano.toFixed(2);
+										//llevar valor a la grilla
+										n3.val(recurso_humano)
+										
+										
+							
+										
+										
+										 
+										 
+										   
+										 _calHabilidad = $("#calHabilidad option:selected").val();
+					
+									});
+									
+									request.fail(function( jqXHR, textStatus ) {
+										alert( "Request failed: " + textStatus );
+									});
+							
+						}
+					}
+				}
+			},
+			
+			
+			{field:'Estandard',title:'Tiempo Estandard',width:'10%',align:'center',
+			editor:{
+							type:'text'
+						}
+			},
+			{field:'Insumos',title:'Recurso',width:'27%',align:'center',
+	        
+				formatter:function(value){
+					for(var i=0; i<recursos.length; i++){//recursos es un nuevo arreglo
+						if (recursos[i].id == value) return recursos[i].name;
+					}
+					return value;
+				},
+				editor:{
+					type:'combobox',
+					options:{
+						valueField:'id',
+						textField:'name',
+						url:"/modulo3/Maquinas_Y_Costos",
+						required:true,
+						onSelect:function(rec){
+						
+									var request = $.ajax({
+										url: "/modulo3/Valor_Maquinas",
+										type: "GET",
+										data: { maquinas : rec.id },//leemos id y lo enviamos a maquinas
+										dataType: "json"
+									});
+									//alert(JSON.stringify(msg));
+									request.done(function( msg ) {
+										
+										//alert(JSON.stringify(msg));
+										var editors = $('#tt').datagrid('getEditors', row_actual);
+									    var n1 = $(editors[4].target);
+									     n1.val(msg[0].fields.Precio);
+										 
+										
+										 
+									});
+									
+									request.fail(function( jqXHR, textStatus ) {
+										alert( "Request failed: " + textStatus );
+									});
+							
+						}
+					}
+				}
+			},
+			{field:'costo_insumo',title:'Costo Recurso',width:'10%',align:'center',
+				editor:{
+							type:'text'
+						}
+			},
+			{field:'Lote',title:'Tiempo de lote',width:'10%',align:'center',
+				editor:{
+							type:'text'
+						}
+			},
+			{field:'RequerimientoRH',title:'Recurso Humano',width:'10%',align:'center',
+				editor:{
+							type:'text'
+						}
+			},
+			
+		//campo con opciones de guardar o cancelar
+			{field:'action',title:'Acciones',width:'10%',align:'center',
+				formatter:function(value,row,index){
+					if (row.editing){
+						var s = '<a href="#" onclick="saverow(this)">Guardar</a> ';
+						var c = '<a href="#" onclick="cancelrow(this)">Cancelar</a>';
+						return s+c;
+					} else {
+						var e = '<a href="#" onclick="editrow(this)">Editar</a> ';
+						var d = '<a href="#" onclick="deleterow(this)">Eliminar</a>';
+						return e+d;
+					}
+				}
+			}
+		]],
+		onBeforeEdit:function(index,row){
+			row.editing = true;
+			updateActions(index);
+		},
+		onAfterEdit:function(index,row){
+		
+		           //
+					var i = 0;
+					var _subtotal ="0:0";
+					
+				    var rows = $('#tt').datagrid('getRows');    // get current page rows
+					for(i = 0; i<$('#tt').datagrid('getData').total; i++)
+					{
+						var row_post = rows[i];
+						_subtotal = sumartiempo(_subtotal,row_post.Estandard);
+				        _total=tiempoenminutos(_subtotal);
+						$("#estandard").val(_total);
+					
+					}
+					var i = 0;
+					var _sumatoria =0;
+					
+				    var rows = $('#tt').datagrid('getRows');    // get current page rows
+					for(i = 0; i<$('#tt').datagrid('getData').total; i++)
+					{
+						var row_post = rows[i];
+						_sumatoria=_sumatoria+ Number(row_post.costo_recurso)
+						//alert(_sumatoria)
+						
+						$("#costo_total").val(_sumatoria);
+					
+					}
+					var i = 0;
+					var talento_humano =0;
+					
+				    var rows = $('#tt').datagrid('getRows');    // get current page rows
+					for(i = 0; i<$('#tt').datagrid('getData').total; i++)
+					{
+						var row_post = rows[i];
+						talento_humano=Number(talento_humano)+ Number(row_post.RequerimientoRH)
+						
+						
+						
+						talento_humano= talento_humano.toFixed(2);
+						
+						$("#total_RH").val(talento_humano);
+					
+					}
+					var i = 0;
+					
+					var total_lote =0;
+					
+				    var rows = $('#tt').datagrid('getRows');    // get current page rows
+					for(i = 0; i<$('#tt').datagrid('getData').total; i++)
+					{
+						var row_post = rows[i];
+						total_lote =total_lote + minutosensegundos(row_post.Lote)
+						total_lote_minutos=segundosenminutos(total_lote)
+						
+						
+						//subtotal = sumartiempo(subtotal,row_post.tiempo_muestra);
+				         
+				
+						
+						$("#total_lote").val(total_lote_minutos);
+					
+					}
+					
+			
+					
+			////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////		
+			//esta se utiliza para insertar campos o actualizar
+			
+			if (row.id == "")
+            {
+            var request = $.ajax({
+					   url: "/modulo3/Insertar_balanceo",
+					   type: "GET",
+
+					   data: { producto: producto_id, Actividad:row.Actividad,Tieme :row.Estandard,  Tieml:row.Lote, rec:row.RequerimientoRH, Insumos: row.Insumos, costo_insumo :row.costo_insumo,Insumos :row.Insumos},
+					   
+					   dataType: "json"
+					  });
+					  //alert(JSON.stringify(msg));
+					  request.done(function( msg ) { 
+						row.id = Number(msg[0].balanceo_produccion_id);
+						producto_id = Number(msg[0].nuevo_balanceo_id);
+						$("#idbalanceo").val(producto_id);
+					});
+					  
+					  request.fail(function( jqXHR, textStatus ) {
+					  alert( "Request failed: " + textStatus );
+					  });
+					  
+					
+			}
+			else
+			{
+				var request = $.ajax({
+						 url: "/modulo3/Actualizar_balanceo",
+						 type: "GET",
+						 data: {id: row.id,producto: producto_id, Act: row.Actividad, tieme :row.Estandard, tieml:row.Lote, rec:row.RequerimientoRH, Insumos :row.Insumos, costo_insumo : row.costo_insumo,Insumos :row.Insumos},
+						 dataType: "json"
+						  });
+						  
+						  request.done(function( msg ) {
+						 
+							
+						  });
+						  
+						  request.fail(function( jqXHR, textStatus ) {
+						   alert( "Request failed: " + textStatus );
+						  });
+			}
+			
+			row.editing = false;
+			updateActions(index);
+		},
+		onCancelEdit:function(index,row){
+			row.editing = false;
+			updateActions(index);
+		},
+		onBeginEdit:function(rowIndex){
+		
+		row_actual = rowIndex;
+		
+			
+			
+		}
+	});
+}
+		//funciones para actualizar guardar o cancelar
+function updateActions(index){
+	$('#tt').datagrid('updateRow',{
+		index: index	,
+		//row:{}
+	});	
+}
+function getRowIndex(target){
+	var tr = $(target).closest('tr.datagrid-row');
+	return parseInt(tr.attr('datagrid-row-index'));
+}
+function editrow(target){
+	$('#tt').datagrid('beginEdit', getRowIndex(target));
+}
+function deleterow(target){
+    
+	$.messager.confirm('Confirmación','¿Está seguro de eliminar este registro?',function(r){
+		if (r){
+					var row = $('#tt').datagrid('getSelected'); 
+					//alert(JSON.stringify(ele));
+					
+					  var request = $.ajax({
+					   url: "/modulo3/Eliminar_balanceo",
+					   type: "GET",
+					   data: { id: row.id},
+					   dataType: "json"
+					  });
+					  
+					  request.done(function( msg ) {
+						
+					  });
+					  
+					  request.fail(function( jqXHR, textStatus ) {
+					   //alert( "Request failed: " + textStatus );
+					  });
+
+					$('#tt').datagrid('deleteRow', getRowIndex(target));
+					
+				}
+				
+                    
+			        var i = 0;
+					var _subtotal ="0:0";
+					
+				    var rows = $('#tt').datagrid('getRows');    // get current page rows
+					for(i = 0; i<$('#tt').datagrid('getData').total; i++)
+					{
+						var row_post = rows[i];
+						_subtotal = sumartiempo(_subtotal,row_post.Estandard);
+				        _total=tiempoenminutos(_subtotal);
+						$("#estandard").val(_total);
+					
+					}
+					var i = 0;
+					var _sumatoria =0;
+					
+				    var rows = $('#tt').datagrid('getRows');    // get current page rows
+					for(i = 0; i<$('#tt').datagrid('getData').total; i++)
+					{
+						var row_post = rows[i];
+						_sumatoria=_sumatoria+ Number(row_post.costo_recurso)
+						//alert(_sumatoria)
+						
+						$("").val(_sumatoria);
+					
+					}
+					var i = 0;
+					var talento_humano =0;
+					
+				    var rows = $('#tt').datagrid('getRows');    // get current page rows
+					for(i = 0; i<$('#tt').datagrid('getData').total; i++)
+					{
+						var row_post = rows[i];
+						talento_humano=Number(talento_humano)+ Number(row_post.RequerimientoRH)
+						
+						
+						
+						talento_humano= talento_humano.toFixed(2);
+						
+						$("#total_RH").val(talento_humano);
+					
+					}
+					var i = 0;
+					
+					var total_lote =0;
+					
+				    var rows = $('#tt').datagrid('getRows');    // get current page rows
+					for(i = 0; i<$('#tt').datagrid('getData').total; i++)
+					{
+						var row_post = rows[i];
+						total_lote =total_lote + minutosensegundos(row_post.Lote)
+						total_lote_minutos=segundosenminutos(total_lote)
+						
+						
+						//subtotal = sumartiempo(subtotal,row_post.tiempo_muestra);
+				         
+				
+						
+						$("#total_lote").val(total_lote_minutos);
+					
+					}
+				
+				
+				
+				
+	});
+	
+	
+	
+}
+function saverow(target){
+	$('#tt').datagrid('endEdit', getRowIndex(target));
+}
+function cancelrow(target){
+	$('#tt').datagrid('cancelEdit', getRowIndex(target));
+}
+function insert(){
+	var row = $('#tt').datagrid('getSelected');
+	if (row){
+		var index = $('#tt').datagrid('getRowIndex', row);
+	} else {
+		index = 0;
+	}
+	$('#tt').datagrid('insertRow', {
+		index: index,
+		row:{
+			//status:'P'
+		}
+	});
+	$('#tt').datagrid('selectRow',index);
+	$('#tt').datagrid('beginEdit',index);
+}
+
+$( window ).load(function() {//funcion para que se cargue la grilla
+  //loadGrid();
+  loadFranjas();
+});
+
+
+</script>
+
+
+<form method="post">
+{% csrf_token %}
+
+
+
+<div class = "titulosbalanceo" align="center">
+BALANCEO DE PRODUCCIÓN
+</div>
+<br>
+<div align = "center"><p>
+	Ingrese el producto sobre el cual realizará el balanceo ser elaborado y selecciones la jornada creada: <p>
+</div>
+<fieldset class="module aligned">
+<br>
+<br>
+<br>
+
+<div class = "row">
+	
+	<div class="form-group col-md-4">
+	    <label for="Actividad" >Producto:</label>
+	    
+	      <input type="text" class="form-control" name = "Producto"id="Producto" placeholder="Ingrese un producto" title ="Ingrese un producto" required maxlength= "50" >
+	  	
+	</div>  
+	
+	<div class="form-group col-md-4">
+	    <label for="selTipoDia">Tipo de Día : </label>
+	    <select type="text" class="form-control" name="selTipoDia" id="selTipoDia" placeholder="selecione tipo de jornada">
+	    	{% if tipodia_list %}
+				<option value="0">Selecione una Jornada</option>
+			{% for tipo_dia in tipodia_list %}
+				<option value="{{tipo_dia.id}}">{{tipo_dia.Tipo_De_Dia}} </option>
+			{% endfor %}
+		{% else %}
+			<option value="0">...No hay ninguna jornada registrada</option>
+		{% endif %}
+		</select>
+	</div>
+
+	<div class="form-group col-md-4">
+	    <label for="Tiempo_total">Tiempo de Jornada:</label>
+	    <input type="text"  class="form-control" name="Tiempo_total" id= "Tiempo_total"   title "Ingrese una jornada"    Title= "seleccione una jornada" onfocus="this.blur()">
+	  </div>
+
+</div>
+
+
+<div align= "center"><p><h4>Ingrese un valor de porcentaje de Eficiencia y la cantidad de unidades del producto a fabricar:	</h4><p></div>
+
+
+<br>
+<br>
+<div class="row">
+  <div class="form-group col-md-4">
+    <label for="eficicencia" class="col-sm-6 control-label"> Porcentaje de eficiencia:</label>
+    <div class="col-sm-4">
+      <input type="number" class="form-control" id="eficiencia" name = "eficiencia" title = "ingrese un valor de porcentaje de eficicencia" placeholder="%" required min=0 max=100>
+    </div>
+  </div>
+  <div class="form-group col-md-4">
+    <label for="lote" class="col-sm-6 control-label">Cantidad de unidades a fabricar</label>
+    <div class="col-sm-6">
+      <input type="number" class="form-control" name="lote" id= "lote" 
+      title = "selecione una jornada" required  min= 1 value =1 >
+    </div>
+ </div>
+
+ <div class="form-group col-md-4">
+ </div>
+</div>
+
+<br>
+<br>
+
+
+
+
+
+
+<div class = "row">
+	<div class="form-group col-md-4"></div>
+	<div class="centroboton"  id= "botoncargar" hidden>
+		<a href="#" class="btn btn-primary" onclick="insert()" >Cargar una actividad del producto</a>
+	</div>
+	<div class="form-group col-md-4"></div>
+</div>
+
+<br>
+<div ="row">
+	<div class="form-group col-md-0"></div>
+	<div class="form-group col-md-12">
+		<table id="tt"></table>
+	</div>
+	<div class="form-group col-md-0"></div>
+</div>		
+<br>
+<br>
+
+
+
+
+
+
+
+<div class="form-row">
+
+<div class ="row">
+
+		<div class="form-group col-md-4">
+
+		    <label for="estandard" class=" col-sm-6 control-label"  style="text-align:rigth">Tiempo Por Producto :</label>
+		    <div class="col-sm-5">
+		      <input type="text" class="form-control"  name="estandard" id= "estandard" title = "Ingrese como mínimo una actividad"required onfocus="this.blur()"	>
+		    </div>
+		 </div>  
+		
+
+		<div class="form-group col-md-4">
+
+		    <label for="total_RH" class=" col-lg-6 control-label"  style="text-align:rigth">Total Talento Humano:</label>
+		    <div class="col-sm-6">
+		      <input type="text" class="form-control"  name="total_RH" id= "total_RH" value = "0" align="center" onfocus="this.blur()"> 
+		    </div>
+		 </div>  
+		
+
+
+		<div class="form-group col-md-4">
+
+		    <label for="estandard" class=" col-sm-6 control-label"  style="text-align:rigth">Tiempo para elaboracion de productos:</label>
+		    <div class="col-sm-6">
+		      <input type="text" class="form-control"  name="total_lote" id= "total_lote" title =  required onfocus="this.blur()"> Minutos
+		    </div>
+		 </div>
+</div>
+
+
+
+
+
+</fieldset>
+<div class = "row">
+	<div class="form-group col-md-3">	</div>
+
+	
+		<div class="form-group col-md-8">
+			<div class="submit-row">
+				<input type ="hidden" name = "idbalanceo" id="idbalanceo"/>
+				<input name="guardar" type="submit" class="btn btn-success" id="guardar" value = "GUARDAR"/>
+	  			<input name="reportes" type="submit" class="btn btn-success" id="reportes" value = "GUARDAR E IR A REPORTES"/>
+	 			<input name="pdf" type="submit" class="btn btn-success" id="pdf" value = "REPORTE RÁPIDO PDF "/> 
+	  		</div>
+	  	</div>
+	</div>
+	
+	<div class="form-group col-md-2">	</div>  
+
+ </div> 
+</form>
+
+<script >
+
+$( "#selTipoDia" ).change(function() {
+ 	
+	//alert("valor: " + $( "#selTipoDia option:selected" ).val());
+  
+  	var id = $( "#selTipoDia option:selected" ).val();
+	var request = $.ajax({
+	  url: "/modulo3/traerJornadas",
+	  type: "GET",
+	  data: { id : id },
+	  dataType: "json"
+	});
+	 
+	request.done(function( msg ) {
+	  //alert(JSON.stringify(msg[0].fields.Total));
+	  $('#Tiempo_total').val(msg[0].fields.Total);
+
+	  
+	});
+	 
+	request.fail(function( jqXHR, textStatus ) {
+	  alert( "Request failed: " + textStatus );
+	});
+  
+
+
+});
+ //Aparece el boton de cargar una actividad del producto, esto se hace ya que el valor de recurso humano depente del tiempo de la jornada laboral y si el usuario se olvida el colocarla el resultado va a ser infinity y al hacer post generaría un error de servidor
+$("#eficiencia").on('focusout',function() {
+       if( $(this).val()!=""&& $("#Tiempo_total").val()!=""){
+        $( "#botoncargar" ).attr( "hidden", false );
+
+       };
+});
+
+
+       
+    
+
+
+
+</script>
+
+{% endblock %}

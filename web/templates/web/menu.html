@@ -1,0 +1,31 @@
+<!-- Propósito: Presentar autenticación al sistema.
+Fecha actualizado: 23/09/2014-->
+
+<!-- Fecha creado: 23/09/2014 
+Proposito: Template de inicio de sesión.
+-->
+
+
+{% extends "web/base.html" %}
+
+{% block content %}
+	<div id="menu_list">
+	{% if menu %}
+    <h2>{{menu.Nombre}}</h2>
+    <p>{{menu.Mensaje}}</p>
+    {% endif %}
+    <div id="iconos">
+    
+    	{% if iconos %}
+        	{% for icono in iconos %}	
+            	
+            		<a href="{{icono.Destino}}?menu_id={{icono.id}}" style="width: 32%; margin: 5px;" class="btn btn-primary btn-md" role="button"><span class="icon {{icono.Icono}}"></span><br>{{icono.Nombre}}</a>
+            	
+            {% endfor %}
+        {% endif %}
+    
+	</div>
+
+</div>
+{% endblock %}
+

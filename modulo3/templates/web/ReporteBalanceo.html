@@ -1,0 +1,223 @@
+
+{% block extra_style %} <style type="text/css">
+    body {
+        font-family: "Lucida Sans";
+        color: #000000; }
+	#tableTop, #tableTop td {
+		border-width:0.4px;
+		border-style:solid;
+		border-color: #000000;
+	}
+	.title {
+		font-size: 18px;
+		padding-top: 15px;
+		padding-left: 20px;
+	}
+	.td_gray {
+		background-color: #f1f1f1;
+		}
+	.td_nombreEmpresa {
+		padding-top:10px;
+		padding-left:10px;
+		font-size:14px;
+	}
+	.td_factura {
+		padding-top:10px;
+		padding-right:10px;
+		font-size:14px;
+	}
+	.td_color {
+		background-color:#f2bc82;
+	}
+	.td_telefono {
+		border-right:#000000 0.5px solid;
+		margin-right:5px;
+		padding-top:3px;
+	}
+	.td_direccion {
+		margin-left: 5px;
+		padding:0px;
+		padding-top:3px;
+	}
+	.td_mini {
+		font-size: 2px;
+	}
+	.th_element {
+		padding-top:5px;
+		font-size:13px;
+	}
+	.td_first_detail {
+        border-style: groove; 
+		border-right: #000000 solid 0.4px;
+		border-bottom: #000000 solid 0.4px;
+        border-left:#000000 solid 0.4px;
+        border-top: #000000 solid 0.4px;
+		padding-left:3px;
+		padding-top:3px;
+		padding-right:3px;
+	}
+	.td_detail {
+		border-right: #000000 solid 0.4px;
+		border-left: #000000 solid 0.4px;
+		border-bottom: #000000 solid 0.4px;
+        border-top: #000000 solid 0.4px;
+		padding-left:3px;
+		padding-top:3px;
+		padding-right:3px;
+	}
+	.td_last_detail {
+		border-left: #000000 solid 0.4px;
+		border-bottom: #000000 solid 0.4px;
+        border-top: #000000 solid 0.4px;
+		padding-left:3px;
+		padding-top:3px;
+		padding-right:3px;
+	}
+	.td_total {
+		padding-top:7px;
+		padding-bottom:5px;
+	}
+	.footerC {
+		text-align:right;
+		font-size:8px;
+	}
+	@page {
+  		margin: 1cm;
+  		margin-bottom: 1cm;
+  	@frame footer {
+    	-pdf-frame-content: footerContent;
+    	bottom: 0.1cm;
+    	margin-left: 1cm;
+    	margin-right: 1cm;
+    	height: 1cm;
+  		}
+	}
+</style> {% endblock %}
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte balanceo</title>
+   
+ <div id="content">
+
+{% load staticfiles %}
+	
+
+<tr>
+  <td align="right" valign="bottom" class="td_gray td_mini">&nbsp;</td>
+  <td width="23%" align="left" valign="middle" class="td_gray td_mini">&nbsp;</td>
+</tr>
+</table>
+<div class="title"><strong>BALANCEO DE PRODUCCIÓN:</strong></div>
+<br />
+<div>
+<table width="94%" border="0" align="center" cellpadding="0" cellspacing="0">
+<tr>
+<td width="100%" align="left" valign="top"><strong><span style="font-size:18px">Datos  </span></strong><br>
+<h2>Producto: {{balanceo.Nombre_Producto}}<br>
+Jornada Laboral: {{balanceo.Tipo_De_Dia}}</h2><br>
+
+</td>
+
+
+</td>
+</tr>
+</table>
+</div>
+<br />
+<div>
+
+     <h1>Toma de tiempos:</h1>
+    <table width="100%" border="0" cellpadding="0" cellspacing="0">
+ 
+        <th class="td_color th_element">Actividad</th>
+        <th class="td_gray th_element">Tiempo Estandard</th>
+        <th class="td_gray th_element">Recursos</th>
+        <th class="td_gray th_element">Tiempo de Lote</th>
+        <th class="td_gray th_element">Recurso Humano</th>
+        
+
+      	
+    </tr>
+    <tr>
+    	<td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+    </tr>
+    {%for i in sumatorias %}
+        <tr>
+            <td width="20%" align="center" valign="middle" class="td_first_detail">{{i.Actividad}}</td>
+            <td width="20%" align="center" valign="middle" class="td_detail">{{i.Tiempo_Estandard}}</td>
+            <td width="20%" align="center" valign="middle" class="td_detail">
+            {{i.Maquina}}</td>
+            <td width="20%" align="center" valign="middle" class="td_detail">
+            {{i.Tiempo_Lote}}</td>
+            <td width="20%" align="center" valign="middle" class="td_detail">{{i.Recurso_humano}}</td>
+           
+         </tr> 
+        {% endfor %}
+  
+    <tr>
+    	<td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        
+    <tr>
+    	<td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        
+    <tr>
+    	<td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        <td>&nbsp;</td>
+        
+    </tr>
+    </table>
+</div> 
+<br />
+<div>
+  <h1>Resultados:<h1>  
+</div>
+<div>
+
+
+    <table width="100%" border="0" cellpadding="0" cellspacing="0">
+ 
+        <th class="td_gray th_element">Tiempo total de Jornada</th>
+        <th class="td_gray th_element">Cantidad de productos lote</th>
+        <th class="td_gray th_element">Eficiencia</th>
+        <th class="td_gray th_element">Recurso Humano requerido</th>
+        <th class="td_gray th_element">Tiempo  total por lote</th>
+        <th class="td_gray th_element">Suma total tiempo standard</th>
+
+    
+        <tr>
+
+            <td width="16%" align="center" valign="middle" class="td_first_detail">{{balanceo.Total_jornada}}</td>
+            <td width="16%" align="Center" valign="middle" class="td_detail">{{balanceo.Lote_A_Fabricar}}</td>
+            <td width="16%" align="center" valign="middle" class="td_detail">{{balanceo.Eficiencia}}%</td>
+            <td width="16%" align="center" valign="middle" class="td_detail">{{balanceo.Total_Recurso_humano}}</td>
+            <td width="16%" align="center" valign="middle" class="td_detail">{{balanceo.Tiempo_Total_lote}}</td>
+             <td width="16%" align="center" valign="middle" class="td_detail">{{balanceo.Suma_Tiempo_Estandard}}</td>
+         </tr> 
+      
+        </tr>
+    </table>    
+</div>
+<br />
+<br />
+
+
+</div>
+<div class="footerC" id="footerContent">Desarrollado por SENA - Centro de Manufactura en Textiles y Cuero </div>
+{% endblock %}
+

@@ -1,0 +1,6 @@
+<ul>
+    {% for item in menu %}
+    {% if item.separator %}<li>------------</li>{% endif %}
+    <li><a href="{{ item.url }}?menu_id={{item.id}}">.....{{ item.title }}</a></li>
+    {% endfor %}
+</ul>

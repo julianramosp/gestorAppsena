@@ -1,0 +1,21 @@
+<!-- Template basico del modulo administrador 
+	Fecha actualizado: 02/09/2014
+	Cambio realizado: Personalización pantalla inicio. Cambio titulo, Ln 9
+	Fecha actualizado: 23/09/2014
+	Cambio realizado: Incluir el archivo de template básico al autenticarse de manera correcta, Ln 8
+-->
+
+{% extends "admin/base.html" %}
+{% load i18n %}
+
+
+{% block title %} {% trans 'Administrador Sistema de Gestión de la Producción' %} | {{ title }} {% endblock %}
+
+{% block branding %}
+<h1 id="site-name" align="center">{% trans 'Administrador Sistema de Gestión de la Producción' %}</h1>
+{% endblock %}
+
+{% block tit %}
+<h1 id="site-name1" align="left">{% trans 'Administrador Sistema de Gestión de la Producción' %}</h1>
+{% endblock %}
+{% block nav-global %}{% endblock %}

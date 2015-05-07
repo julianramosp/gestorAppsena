@@ -1,0 +1,557 @@
+{% extends "web/base.html" %}
+
+{% block title %}
+	Módulo de Explosión de Materiales
+{% endblock %}
+
+{% block content %}
+
+<script>
+
+var insumos = new Array();
+var row_actual = 0;
+var _ref_producto;
+
+$(function(){
+	
+	loadGrid();
+	
+	$("#selProducto").change(function() {
+ 	
+		//alert("valor: " + $( "#selProducto option:selected" ).val());
+	  	_ref_producto = $( "#selProducto option:selected" ).val();
+		
+		if (_ref_producto != "0")
+		{
+			var request = $.ajax({
+			  url: "/web/ObtenerProductoPorReferencia",
+			  type: "GET",
+			  data: { referencia : _ref_producto },
+			  dataType: "json"
+			});
+			
+			request.done(function( msg ) {
+				
+				$("#grid_container").css("display","block");
+				
+				$("#txtReferencia").html(msg[0].pk);
+				$("#txtLinea").html(msg[0].fields.Linea);
+				$("#txtUVenta").html(msg[0].fields.Unidad_Venta);
+				if(msg[0].fields.Imagen != "")
+				{
+					$("#explosion_imagen").html("<img src=/" + msg[0].fields.Imagen + " />");
+				}
+				else
+				{
+					$("#explosion_imagen").html("");
+				}
+				
+				$('#_dataGrid').datagrid({
+					url:"/web/inventario/ObtenerConsumosPorProductoTerminado?id=" + _ref_producto,
+				});
+				//alert(JSON.stringify(msg[0]));
+			});
+			
+			request.fail(function( jqXHR, textStatus ) {
+			  alert( "Request failed: " + textStatus );
+			});
+		}
+		else
+		{
+			$("#explosion_imagen").html("");
+			$("#txtReferencia").html("");
+			$("#txtLinea").html("");
+			$("#txtUVenta").html("");
+			$("#grid_container").css("display","none");
+		}
+		
+	});
+});
+
+
+function loadGrid() {
+	$('#_dataGrid').datagrid({
+		title:'Detalle de Consumo',
+		//iconCls:'icon-edit',
+		width:'100%',
+		height:200,
+		singleSelect:true,
+		idField:'Ref_Producto',
+		columns:[[
+			{field:'Ref_Producto',title:'Referencia',width:'10%',align:'center',
+				editor:{
+					type:'combobox',
+					options:{
+						valueField:'pk',
+						textField:'pk',
+						url:"/web/ObtenerInsumos",
+						//data:insumos,
+						required:true,
+						onSelect:function(rec){
+							var request = $.ajax({
+								url: "/web/ObtenerProductoPorReferencia",
+								type: "GET",
+								data: { referencia : rec.pk },
+								dataType: "json"
+							});
+							request.done(function( msg ) {
+								var editors = $('#_dataGrid').datagrid('getEditors', row_actual);
+								
+								var n0 = $(editors[0].target); // ref Producto
+								var n1 = $(editors[1].target); // nombre producto
+								var n2 = $(editors[2].target); // Unidad de Venta
+								var n3 = $(editors[3].target); // Unidad de Consumo
+								var n5 = $(editors[5].target); // Val Unitario
+								var n6 = $(editors[6].target);
+								var n7 = $(editors[7].target);
+								var n8 = $(editors[8].target);
+								var n9 = $(editors[9].target);
+								
+								n1.val(msg[0].fields.Nombre_producto);
+								n2.combobox('setValue', msg[0].fields.Unidad_Venta);
+								n3.combobox({url:"/web/ObtenerUnidadesPorUVenta?uventa=" + msg[0].fields.Unidad_Venta});
+								n5.numberbox('setValue', Number(msg[0].fields.Valor_Unitario));
+								n6.numberbox('setValue', '');
+								n7.numberbox('setValue', '');
+								n8.numberbox('setValue', '');
+								n9.numberbox('setValue', '');
+								
+								//alert(JSON.stringify(msg));
+							});
+							
+							request.fail(function( jqXHR, textStatus ) {
+								alert( "Request failed: " + textStatus );
+							});
+							
+						}
+					}
+				}
+			},
+			{field:'Nombre_producto',title:'Nombre',width:'20%',align:'center',
+				editor:{
+					type:'text'
+				}
+			},
+			{field:'Unidad_Venta',title:'U. Venta',width:'7%',align:'center',
+				editor:{
+					type:'combobox',
+					options:{
+						valueField:'id',
+						textField:'name',
+						url:"/web/ObtenerUnidades",
+						disabled:true,
+					}
+				}
+			},
+			{field:'Unidad_Consumo',title:'U. Consumo',width:'10%',align:'center',
+				editor:{
+					type:'combobox',
+					options:{
+						valueField:'id',
+						textField:"name",
+						//url:"/web/ObtenerUnidades",
+						onSelect:function(rec){
+							var _editors = $('#_dataGrid').datagrid('getEditors', row_actual);
+							var n2 = $(_editors[2].target);
+							var n4 = $(_editors[4].target);
+							var n5 = $(_editors[5].target);
+							var n6 = $(_editors[6].target);
+							var n7 = $(_editors[7].target);
+							var n8 = $(_editors[8].target);
+							var n9 = $(_editors[9].target);
+							
+							var request = $.ajax({
+								url: "/web/ObtenerEquivalencia",
+								type: "GET",
+								data: {uventa: n2.numberbox('getValue'), ucompra:rec.id},
+								dataType: "json"
+							});
+							
+							request.done(function( msg ) {
+								n4.numberbox('setValue', Number(msg[0].fields.Equivalencia))
+								
+								_equivalencia = Number(n4.numberbox('getValue'));
+								_v_unitario = Number(n5.numberbox('getValue'));
+								_desperdicio = Number(n7.numberbox('getValue'));
+								_consumo = Number(n6.numberbox('getValue'));
+								//alert("eq: " + _equivalencia);
+								_consumoReal = Number(_consumo) * (1 + _desperdicio/100);
+								_precioConsumo = _consumoReal * (_equivalencia * _v_unitario)
+								
+								n8.numberbox('setValue', _consumoReal);
+								n9.numberbox('setValue', _precioConsumo);
+							});
+							
+							request.fail(function( jqXHR, textStatus ) {
+								alert( "Request failed: " + textStatus );
+							});
+						}
+					}
+				}
+			},
+			{field:'Equivalencia',title:'Equivalencia', hidden:true,
+				editor:{
+					type:'numberbox',
+					options:{
+						precision:10
+					}
+					
+				}
+			},
+			{field:'V_Unitario',title:'V_Unitario', hidden:true, 
+				editor:{
+					type:'numberbox',
+				}
+			},
+			{field:'Consumo',title:'Consumo',width:'8%',align:'center',
+				editor:{
+					type:'numberbox',
+					options:{
+						required:true,
+						onChange:function(element){
+							
+							var _editors = $('#_dataGrid').datagrid('getEditors', row_actual);
+							if(_editors[0])
+							{
+								var n4 = $(_editors[4].target);
+								var n5 = $(_editors[5].target);
+								
+								var n7 = $(_editors[7].target);
+								var n8 = $(_editors[8].target);
+								var n9 = $(_editors[9].target);
+								
+								_equivalencia = Number(n4.numberbox('getValue'));
+								_v_unitario = Number(n5.numberbox('getValue'));
+								_desperdicio = Number(n7.numberbox('getValue'));
+								
+								//alert("eq: " + _equivalencia);
+								_consumoReal = Number(element) * (1 + _desperdicio/100);
+								_precioConsumo = _consumoReal * (_equivalencia * _v_unitario)
+								
+								n8.numberbox('setValue', _consumoReal);
+								n9.numberbox('setValue', _precioConsumo);
+							}
+							
+						}
+					}
+				}
+			},
+			{field:'Desperdicio',title:'Desperdicio (%)',width:'10%',align:'center',
+				editor:{
+					type:'numberbox',
+					options:{
+						required:true,
+						onChange:function(element){
+							
+							var _editors = $('#_dataGrid').datagrid('getEditors', row_actual);
+							
+							if(_editors[0])
+							{
+								var n4 = $(_editors[4].target);
+								var n5 = $(_editors[5].target);
+								
+								var n6 = $(_editors[6].target);
+								var n8 = $(_editors[8].target);
+								var n9 = $(_editors[9].target);
+								
+								_equivalencia = Number(n4.numberbox('getValue'));
+								_v_unitario = Number(n5.numberbox('getValue'));
+								_consumo = Number(n6.numberbox('getValue'));
+								
+								_consumoReal = Number(_consumo) * (1 + element/100);
+								_precioConsumo = _consumoReal * (_equivalencia * _v_unitario)
+								
+								n8.numberbox('setValue', _consumoReal);
+								n9.numberbox('setValue', _precioConsumo);
+							}
+							
+						}
+					}
+				}
+			},
+			{field:'ConsumoReal',title:'Consumo Real',width:'10%',align:'center',
+				editor:{
+					type:'numberbox',
+					options:{
+						disabled:true,
+						precision:2
+					}
+				}
+			},
+			{field:'PrecioConsumo',title:'Precio Consumo',width:'14%',align:'center',
+				editor:{
+					type:'numberbox',
+					options:{
+						disabled:true
+					}
+				}
+			},
+			{field:'id',title:'id', hidden:true, 
+			editor:{
+				type:'numberbox'
+				}
+			},
+			{field:'action',title:'Acciones',width:'12%',align:'center',
+				formatter:function(value,row,index){
+					if (row.editing){
+						var s = '<a href="#" onclick="saverow(this)">Guardar</a> ';
+						var c = '<a href="#" onclick="cancelrow(this)">Cancelar</a>';
+						return s+c;
+					} else {
+						var e = '<a href="#" onclick="editrow(this)">Editar</a> ';
+						var d = '<a href="#" onclick="deleterow(this)">Eliminar</a>';
+						return e+d;
+					}
+				}
+			}
+		]],
+		onLoadSuccess:function(index){
+			var i = 0;
+			var total = 0;
+			var rows = $('#_dataGrid').datagrid('getRows');    // get current page rows
+			for(i = 0; i<$('#_dataGrid').datagrid('getData').total; i++)
+			{
+				var row_post = rows[i];
+				total += Number(row_post.PrecioConsumo);
+			}
+			$("#txtConsumoTotal").val(total);
+		},
+		onBeforeEdit:function(index,row){
+			row.editing = true;
+			updateActions(index);
+			
+		},
+		onAfterEdit:function(index,row){
+			
+			var i = 0;
+			var total = 0;
+			var rows = $('#_dataGrid').datagrid('getRows');    // get current page rows
+			for(i = 0; i<$('#_dataGrid').datagrid('getData').total; i++)
+			{
+				var row_post = rows[i];
+				total += Number(row_post.PrecioConsumo);
+			}
+			$("#txtConsumoTotal").val(total);
+			
+			if (row.id == "")
+			{
+				var request = $.ajax({
+				   url: "/web/inventario/InsertarConsumo",
+				   type: "GET",
+				   data: {Producto_Terminado: _ref_producto, Insumo: row.Ref_Producto, Unidad_Consumo: row.Unidad_Consumo, Consumo: row.Consumo, Desperdicio: row.Desperdicio, Consumo_Real: row.ConsumoReal, Precio_Consumo: row.PrecioConsumo},
+				   dataType: "json"
+				});
+				
+				request.done(function( msg ) {
+					row.id = Number(msg[0].ConsumoRow)
+				});
+				request.fail(function( jqXHR, textStatus ) {
+					alert( "Request failed: " + textStatus );
+				});
+			}
+			else
+			{
+				var request = $.ajax({
+				   url: "/web/inventario/ActualizarConsumo",
+				   type: "GET",
+				   data: {id:row.id, Producto_Terminado: _ref_producto, Insumo: row.Ref_Producto, Unidad_Consumo: row.Unidad_Consumo, Consumo: row.Consumo, Desperdicio: row.Desperdicio, Consumo_Real: row.ConsumoReal, Precio_Consumo: row.PrecioConsumo},
+				   dataType: "json"
+				});
+				
+				request.done(function( msg ) {
+
+				});
+				request.fail(function( jqXHR, textStatus ) {
+					alert( "Request failed: " + textStatus );
+				});
+			}
+			
+			row.editing = false;
+			updateActions(index);
+			
+		},
+		onCancelEdit:function(index,row){
+			row.editing = false;
+			updateActions(index);
+		},
+		onBeginEdit:function(rowIndex){
+			row_actual = rowIndex;
+			
+			var editors = $('#_dataGrid').datagrid('getEditors', rowIndex);
+			
+			var n0 = $(editors[0].target); // ref Producto
+			var n1 = $(editors[1].target); // nombre producto
+			var n2 = $(editors[2].target); // Unidad de Venta
+			var n3 = $(editors[3].target); // Unidad de Consumo
+			var n5 = $(editors[5].target); // Val Unitario
+			var n6 = $(editors[6].target);
+			var n7 = $(editors[7].target);
+			var n8 = $(editors[8].target);
+			var n9 = $(editors[9].target);
+			
+			var _preSel = n3.combobox('getValue');
+			
+			n3.combobox({url:"/web/ObtenerUnidadesPorUVenta?uventa=" + n2.combobox('getValue')});
+			n3.combobox('setValue', _preSel);
+			
+			
+			/*
+			if(editors[0])
+			{
+				
+				//alert(row_actual);
+			}
+			*/
+		}
+		
+	});
+}
+
+function updateActions(index){
+	$('#_dataGrid').datagrid('updateRow',{
+		index: index	,
+		//row:{}
+	});
+	
+}
+function getRowIndex(target){
+	var tr = $(target).closest('tr.datagrid-row');
+	return parseInt(tr.attr('datagrid-row-index'));
+}
+function editrow(target){
+	$('#_dataGrid').datagrid('beginEdit', getRowIndex(target));
+}
+function deleterow(target){
+	$.messager.confirm('Confirmación','¿Está seguro de eliminar el registro?',function(r){
+		if (r){
+			
+			var row = $('#_dataGrid').datagrid('getSelected');
+			//alert(JSON.stringify(ele));
+			if (row.id)
+			{
+				var request = $.ajax({
+				   url: "/web/inventario/EliminarConsumo",
+				   type: "GET",
+				   data: { id: row.id},
+				   dataType: "json"
+				});
+				request.done(function( msg ) {
+			
+		  		});
+				
+				request.fail(function( jqXHR, textStatus ) {
+					alert( "Request failed: " + textStatus );
+				});
+			}
+
+			//alert(JSON.stringify(ele));
+			$('#_dataGrid').datagrid('deleteRow', getRowIndex(target));
+			
+			var i = 0;
+			var total = 0;
+			var rows = $('#_dataGrid').datagrid('getRows');    // get current page rows
+			for(i = 0; i<$('#_dataGrid').datagrid('getData').total; i++)
+			{
+				var row_post = rows[i];
+				total += Number(row_post.PrecioConsumo);
+			}
+			$("#txtConsumoTotal").val(total);
+		}
+	});
+}
+function saverow(target){
+	$('#_dataGrid').datagrid('endEdit', getRowIndex(target));
+}
+function cancelrow(target){
+	$('#_dataGrid').datagrid('cancelEdit', getRowIndex(target));
+}
+function insert(){
+	var row = $('#_dataGrid').datagrid('getSelected');
+	if (row){
+		var index = $('#_dataGrid').datagrid('getRowIndex', row);
+	} else {
+		index = 0;
+	}
+	$('#_dataGrid').datagrid('insertRow', {
+		index: index,
+		row:{
+			//status:'P'
+		}
+	});
+	$('#_dataGrid').datagrid('selectRow',index);
+	$('#_dataGrid').datagrid('beginEdit',index);
+}
+
+
+</script>
+
+<h1>Explosión de Materiales</h1>
+
+<form method="post">
+<div id="venta_contenedor">
+{% csrf_token %}
+<input name="_id" type="hidden" id="_id" value="{{pre_Venta.id}}" />
+  <div class="col-sm-6">
+      <div class="panel panel-primary">
+        <div class="panel-heading">
+          <h3 class="panel-title">Datos del Producto</h3>
+        </div>
+        <div class="panel-body">
+          
+          	<label for="selProducto">Producto:</label>
+          	<select name="selProducto" id="selProducto">
+            {% if productos_list %}
+            		<option value="0">...seleccione un producto</option>
+            	{% for producto in productos_list %}
+               		<option value="{{producto.Ref_Producto}}">{{producto.Nombre_producto}}</option>
+                {% endfor %}
+            {% else %}
+            	<option value="0">... no hay productos registrados</option>
+            {% endif %}
+          	</select>
+          <br />
+            <div class="panel_label"><strong>Referencia:</strong></div>
+          	<div class="panel_content" id="txtReferencia"></div>
+            
+            <div class="panel_label"><strong>Linea:</strong></div>
+          	<div class="panel_content" id="txtLinea"></div>
+            
+            <div class="panel_label"><strong>Unidad de Venta:</strong></div>
+          	<div class="panel_content" id="txtUVenta"></div>
+  
+        </div>
+      </div>
+    </div><!-- /.col-sm-6 -->
+  
+  <div id="explosion_imagen">
+  
+  </div>  
+  
+  <div id="grid_container" style="display:none;">
+  
+  
+	
+	<div style="margin:10px 0">
+		<a href="#" class="easyui-linkbutton" onclick="insert()">Insertar Consumo</a>
+	</div>
+	
+	<table id="_dataGrid"></table>
+  
+  	<div id="explosion_total">
+  	<p>
+  	  <label for="txtObservaciones">Total del Producto:</label>
+  	  <input type="text" name="txtConsumoTotal" id="txtConsumoTotal"/>
+    </p>
+   </div>
+  
+  </div>
+  
+   <div id="explosion_botones"> 
+    <input name="cancel" type="submit" class="btn btn-default" id="cancel" value="Regresar" />
+    <!--input name="save" type="submit" class="btn btn-success" id="save" value="Guardar"/-->
+  </div>
+    
+</div>
+</form>
+
+{% endblock %}

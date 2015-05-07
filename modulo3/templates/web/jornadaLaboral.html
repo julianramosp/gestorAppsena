@@ -1,0 +1,412 @@
+{% extends "web/base.html" %}
+
+
+{% block title %}
+	Calculo de jornada laboral
+{% endblock %}
+
+{% block content %}
+<script>
+//archivo ok
+var franjas = new Array();
+var Dia_Laboral_Id = "0";
+//franjas.push({id:1,name:'franja 1'});
+//franjas.push({id:2,name:'franja 2'});
+//franjas.push({id:3,name:'franja 3'});
+//franjas.push({id:4,name:'franja 4'});
+
+function loadFranjas() {
+	var request = $.ajax({
+		url: "/modulo3/getTiempoporFranja",
+		type: "GET",
+		dataType: "json"
+	});
+	 
+	 
+	request.done(function( msg ) {
+		
+		$.each(msg, function(index, value) {
+			//alert(value);
+			//alert(JSON.stringify(value));
+			franjas.push({id:value.pk, name:value.fields.Franja_De_Tiempo});
+			//alert(JSON.stringify(franjas));
+		});
+		loadGrid();
+	  
+	});
+	 
+	request.fail(function( jqXHR, textStatus ) {
+		//alert( "Request failed: " + textStatus );
+	});
+}
+
+function calcularTiempo(v1,v2)
+{
+	var horas1=v1.split(":"); /*Mediante la función split separamos el string por ":" y lo convertimos en array. */ 
+	var horas2=v2.split(":");
+	var horatotale=new Array();
+	for(a=0;a<3;a++) /*bucle para tratar la hora, los minutos y los segundos*/
+	{
+		horas1[a]=(isNaN(parseInt(horas1[a])))?0:parseInt(horas1[a]) /*si horas1[a] es NaN lo convertimos a 0, sino convertimos el valor en entero*/
+		horas2[a]=(isNaN(parseInt(horas2[a])))?0:parseInt(horas2[a])
+		horatotale[a]=(horas1[a]-horas2[a]);/* insertamos la resta dentro del array horatotale[a].*/
+		/*alert("la resta es igual a "+horas1[a])*/
+	}
+	horaenminutos= (horatotale[0]*60)+horatotale[1]
+    return horaenminutos;
+	
+	
+}
+
+
+function loadGrid() {//carga de grilla
+	$('#tt').datagrid({
+		title:'Tiempos por Franjas',
+		//iconCls:'icon-edit',
+		width:'100%',
+		height:200,
+		singleSelect:true,
+		idField:'id',
+		url:'modulo3/getTiempoporFranja',
+		columns:[[//campos de la tabla
+			{field:'id',title:'id', hidden:true, 
+			editor:{
+				type:'numberbox'
+				}
+			},
+			{field:'franja',title:'Franja',width:'30%',align:'center',
+				formatter:function(value){
+					for(var i=0; i<franjas.length; i++){
+						if (franjas[i].id == value) return franjas[i].name;
+					}
+					return value;
+				},
+				editor:{
+					type:'combobox',
+					options:{
+						valueField:'id',
+						textField:'name',
+						data:franjas,
+						required:true,
+						onSelect:function(rec){
+							
+						}
+					}
+				}
+			},
+			{field:'tiempoinicio',title:'Tiempo Inicio',width:'20%',align:'center',
+				editor:{
+					type:'timespinner',
+				}
+			},
+			{field:'tiempofin',title:'Tiempo Fin',width:'20%',align:'center',
+				editor:{
+					type:'text'
+				}
+			},
+			{field:'subtotal',title:'Subtotal',width:'20%',align:'center',
+			editor:{
+				type:'text',
+				options:{
+						disabled:true
+					}
+				}
+			},//campo con opciones de guardar o cancelar
+			{field:'action',title:'Acciones',width:'12%',align:'center',
+				formatter:function(value,row,index){
+					if (row.editing){
+						var s = '<a href="#" onclick="saverow(this)">Guardar</a> ';
+						var c = '<a href="#" onclick="cancelrow(this)">Cancelar</a>';
+						return s+c;
+					} else {
+						var e = '<a href="#" onclick="editrow(this)">Editar</a> ';
+						var d = '<a href="#" onclick="deleterow(this)">Eliminar</a>';
+						return e+d;
+					}
+				}
+			}
+		]],
+		onBeforeEdit:function(index,row){
+			row.editing = true;
+			updateActions(index);
+		},
+		onAfterEdit:function(index,row){
+			        var i = 0;
+					var subtotal =0;
+				    var rows = $('#tt').datagrid('getRows');    // get current page rows
+					for(i = 0; i<$('#tt').datagrid('getData').total; i++)
+					{
+						var row_post = rows[i];
+					    
+						subtotal += Number(row_post.subtotal);
+					}	
+						
+					
+						
+					
+					
+					
+					$("#sumajornada").val(subtotal);
+			//esta se utiliza para insertar campos o actualizar
+			if (row.id == "")
+            {
+              var request = $.ajax({
+					   url: "/modulo3/inserttotaljornada",
+					   type: "GET",
+					   data: {Tipo_De_Dia:Dia_Laboral_Id,Franja_De_Tiempo:row.franja, Tiempo_Inicio:row.tiempoinicio, Tiempo_Fin: row.tiempofin, Subtotal:row.subtotal},
+					   dataType: "json"
+					  });
+					  
+			     request.done(function( msg ) {
+					//alert("actualizacion correcta")
+					row.id = Number(msg[0].JornadaLaboral_id);
+					Dia_Laboral_Id = Number(msg[0].diaLaboral_id);
+					$("#idtotaljornada").val(Dia_Laboral_Id);
+					  });
+					  
+			     request.fail(function( jqXHR, textStatus ) {
+					alert( "Request failed: " + textStatus );
+					  });
+					  
+					
+			}
+			else
+			{
+				var request = $.ajax({
+						 url: "/modulo3/editartotaljornadas",
+						 type: "GET",
+						 data: {id: row.id, Franja_De_Tiempo:row.franja, Tiempo_Inicio:row.tiempoinicio, Tiempo_Fin: row.tiempofin, Subtotal:row.subtotal},
+						 dataType: "json"
+						  });
+						  
+						  request.done(function( msg ) {
+							//alert("actualizado")
+							
+						  });
+						  
+						  request.fail(function( jqXHR, textStatus ) {
+						   alert( "Request failed: " + textStatus );
+						  });
+			}
+			
+			row.editing = false;
+			updateActions(index);
+		},
+		onCancelEdit:function(index,row){
+			row.editing = false;
+			updateActions(index);
+		},
+		onBeginEdit:function(rowIndex){
+			var Tiempo_Inicio;
+			var Tiempo_Fin;
+			//alert("inicio de edicion");
+			var editors = $('#tt').datagrid('getEditors', rowIndex);
+			var n0 = $(editors[0].target);
+			var n1 = $(editors[1].target);
+			var n2 = $(editors[2].target);
+			var n3 = $(editors[3].target);
+			var n4 = $(editors[4].target);
+			//alert(n2.val());
+			n2.change( function() {
+				var tiempo = calcularTiempo(n3.val(),n2.val());
+				n4.val(tiempo);
+			});
+			n3.change( function() {
+				var tiempo = calcularTiempo(n3.val(),n2.val());
+				n4.val(tiempo);
+			});
+			
+		}
+	});
+}
+		//funciones para actualizar guardar o cancelar
+function updateActions(index){
+	$('#tt').datagrid('updateRow',{
+		index: index	,
+		//row:{}
+	});	
+}
+function getRowIndex(target){
+	var tr = $(target).closest('tr.datagrid-row');
+	return parseInt(tr.attr('datagrid-row-index'));
+}
+function editrow(target){
+	$('#tt').datagrid('beginEdit', getRowIndex(target));
+}
+function deleterow(target){
+    
+	$.messager.confirm('Confirmación','¿Está seguro de eliminar este registro?',function(r){
+		if (r){
+					var row = $('#tt').datagrid('getSelected'); 
+					//alert(JSON.stringify(ele));
+					
+					  var request = $.ajax({
+					   url: "/modulo3/eliminarregistrodertiempo",
+					   type: "GET",
+					   data: { Id: row.id},
+					   dataType: "json"
+					  });
+					  
+					  request.done(function( msg ) {
+						
+					  });
+					  
+					  request.fail(function( jqXHR, textStatus ) {
+					   alert( "Request failed: " + textStatus );
+					  });
+
+					$('#tt').datagrid('deleteRow', getRowIndex(target));
+				}
+				
+                    var i = 0;
+					var subtotal =0;
+				    var rows = $('#tt').datagrid('getRows');    // get current page rows
+					for(i = 0; i<$('#tt').datagrid('getData').total; i++)
+					{
+						var row_post = rows[i];
+					    
+						subtotal += Number(row_post.subtotal);
+					}
+					
+					
+					$("#sumajornada").val(subtotal);	
+				
+				
+				
+				
+				
+	});
+	
+	
+	
+}
+function saverow(target){
+	$('#tt').datagrid('endEdit', getRowIndex(target));
+}
+function cancelrow(target){
+	$('#tt').datagrid('cancelEdit', getRowIndex(target));
+}
+function insert(){
+	var row = $('#tt').datagrid('getSelected');
+	if (row){
+		var index = $('#tt').datagrid('getRowIndex', row);
+	} else {
+		index = 0;
+	}
+	$('#tt').datagrid('insertRow', {
+		index: index,
+		row:{
+			//status:'P'
+		}
+	});
+	$('#tt').datagrid('selectRow',index);
+	$('#tt').datagrid('beginEdit',index);
+}
+
+$( window ).load(function() {//funcion para que se cargue la grilla
+  //loadGrid();
+  loadFranjas();
+});
+
+
+</script>
+
+
+
+<form method="post" id="formulariojornada">
+{% csrf_token %}
+
+<div class="titulosbalanceo" align="center">
+DEFINA LAS JORNADAS LABORALES QUE MANEJA EN SU EMPRESA
+</div>
+<div>
+
+
+ <br>
+ <br>
+ <br>
+
+ 
+
+	<p type= "text" class="col-sm-12"class="lead">Para iniciar es necesario ingresar la cantidad de horas dentro de su jornada, primero debe seleccionar un tipo de jornada:</p>
+
+	<br><br><br> <br><br> 	
+<div class = "row">
+	
+	 <div class="form-group col-md-4">
+	 </div>
+  		
+	<div class="form-group col-md-4">
+  		<div class="col-sm-9">
+			<select name="selTipoDia" id="selTipoDia" class = "form-control" required default = "...Selecione un elemento de la lista">
+				
+					{% for tipo_dia in tipodia_list %}
+					    
+						<option value="{{tipo_dia.id}}">{{tipo_dia.Jornada}} </option>
+					{% endfor %}
+				
+			</select>
+		</div>				
+	</div>
+
+	<div class="form-group col-md-4">
+	</div>
+</div>
+  		
+</div>
+<br><br>
+<div>
+	<p type= "text" class="col-sm-12" class="lead"> Ingrese las franjas de tiempo para la jornada selecionada <br><small> Los "tiempo inicio/tiempo fin" deben ser ingresados con el siguiente formato HH:MM (00:00) y las horas deben ser registradas en formato 24h "3pm" equivalen a "15:00":  </small></p>
+</div>
+
+
+<div= "row">
+<div class="form-group col-md-5">
+	</div>
+		<div class="form-group col-md-4">
+		<a href="#" class="btn btn-primary" onclick="insert()" required >Agregar una nueva franja</a>
+	</div>
+<div class="form-group col-md-4">
+	</div>
+
+<div class = "jornadatabla" >
+	<table id="tt"></table>
+</div>
+
+<div class = "row">
+	<div class="form-group col-md-3">
+		</div>
+	<div class="form-group col-md-6">	
+			<div lass="form-inline">
+
+						<div <div class="form-group">
+						<label for="sumajornada" class=" col-sm-5 control-label" >Tiempo total de la Jornada:</label>
+					   		<div class="col-sm-3">
+					   			<input type="text" class="form-control"  name="sumajornada" id= "sumajornada"title = "Debe selecionar un tipo de  día y por lo menos una franja" required  onfocus="this.blur()" > 
+					    	</div> 
+					 </div>
+
+
+						<div <div class="form-group" >
+							<input type ="hidden" name = "idtotaljornada" id="idtotaljornada"/>
+			 					<input name="totaljornada" type="submit" class="btn btn-primary" id="guardartiempo" value = "GUARDAR"/>
+						</div> 
+				</div>
+	</div> 
+
+	
+
+		</div>
+</div> 
+
+
+
+</form>
+
+
+
+
+
+
+
+{% endblock %}

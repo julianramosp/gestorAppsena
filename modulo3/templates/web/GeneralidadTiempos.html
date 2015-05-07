@@ -1,0 +1,725 @@
+{% extends "web/base.html" %}
+
+
+{% block title %}
+	Toma de tiempos
+{% endblock %}
+
+{% block content %}
+<script>
+//archivo ok
+var franjas = new Array();
+var Actividad_Id = "0";
+var _repeticiones = 1 ;
+//franjas.push({id:1,name:'franja 1'});
+//franjas.push({id:2,name:'franja 2'});
+//franjas.push({id:3,name:'franja 3'});
+//franjas.push({id:4,name:'franja 4'});
+
+function loadFranjas() {
+	var request = $.ajax({
+		url: "/modulo3/GeneralidadTiempos",
+		type: "GET",
+		dataType: "json"
+	});
+	 
+	 
+	request.done(function( msg ) {
+		
+		$.each(msg, function(index, value) {
+		
+			
+		});
+		
+	  
+	});
+	 
+	request.fail(function( jqXHR, textStatus ) {
+		alert( "Request failed: " + textStatus );
+	});
+}
+function sumartiempo(v1,v2)
+{
+	var horas1=v1.split(":"); /*Mediante la función split separamos el string por ":" y lo convertimos en array. */ 
+	var horas2=v2.split(":");
+	var horatotale=new Array();
+	for(a=0;a<3;a++) /*bucle para tratar la hora, los minutos y los segundos*/
+	{
+		horas1[a]=(isNaN(parseInt(horas1[a])))?0:parseInt(horas1[a]) /*si horas1[a] es NaN lo convertimos a 0, sino convertimos el valor en entero*/
+		horas2[a]=(isNaN(parseInt(horas2[a])))?0:parseInt(horas2[a])
+		horatotale[a]=(horas1[a]+horas2[a]);/* insertamos la resta dentro del array horatotale[a].*/
+	}
+	var horatotal=new Date()  /*Instanciamos horatotal con la clase Date de javascript para manipular las horas*/
+    horatotal.setHours(horatotale[0]);
+	horatotal.setMinutes(horatotale[1]);
+	horatotal.setSeconds(horatotale[2]);
+	sumahoras = (horatotal.getMinutes()+":"+ horatotal.getSeconds());
+	return horatotal.getHours()+":"+ horatotal.getMinutes()+":"+ horatotal.getSeconds();
+}
+function tiempoensegundos(v1)
+{
+	var horas1=v1.split(":"); /*Mediante la función split separamos el string por ":" y lo convertimos en array. */ 
+
+	var horatotale=new Array();
+	for(a=0;a<3;a++) /*bucle para tratar la hora, los minutos y los segundos*/
+	{
+		horas1[a]=(isNaN(parseInt(horas1[a])))?0:parseInt(horas1[a]) /*si horas1[a] es NaN lo convertimos a 0, sino convertimos el valor en entero*/
+	    horatotale[a]=(horas1[a]);/* insertamos la resta dentro del array horatotale[a].*/
+		/*alert("la resta es igual a "+horas1[a])*/
+	}
+	_minutosensegundos= (horatotale[0]*3600)+(horatotale[1]*60)+horatotale[2]
+    return _minutosensegundos;
+	
+	
+}
+
+
+
+function calcularmonotonia(v1)
+{
+//el tiempo de las condicionales está dado en segundos ya que el tiempo promedio se calcula en segundos
+	if (v1 < 5)
+	{
+     _monotonia = (v1*0.078)
+    }
+    else if (v1 >6 && v1 < 25)
+    {
+    _monotonia = (v1*0.054)
+    }
+	else if (v1 >26 && v1 <= 50)
+    {
+    _monotonia = (v1*0.036)
+    }
+    else if (v1 >51 && v1 <= 60)
+    {
+    _monotonia = (v1*0.021)
+    }
+     else if (v1 >61 && v1 <= 240)
+    {
+    _monotonia = (v1*0.015)
+    }
+    else if (v1 >241 && v1 <= 480)
+    {
+    _monotonia = (v1*0.01)
+    }
+    else if (v1 >481 && v1 <= 720)
+    {
+    _monotonia = (v1*0.06)
+    }
+     else 
+    {
+    _monotonia = (v1*0.1)
+    }
+    return _monotonia;
+}
+
+
+
+function segundosentiempo(time)
+{
+var hours = Math.floor( time / 3600 );  
+var minutes = Math.floor( (time % 3600) / 60 );
+var seconds = time % 60;
+ 
+//Anteponiendo un 0 a los minutos si son menos de 10 
+minutes = minutes < 10 ? '0' + minutes : minutes;
+ 
+//Anteponiendo un 0 a los segundos si son menos de 10 
+seconds = seconds < 10 ? '0' + seconds : seconds;
+ 
+return result = hours + ":" + minutes + ":" + seconds;  // 2:41:30
+}
+
+//alert("El valor de prueba es "+ toma)
+
+function loadGrid() {//carga de grilla
+	$('#tt').datagrid({
+		title:'Toma de tiempos por actividad',
+		//iconCls:'icon-edit',
+		width:'100%',
+		height:300,
+		singleSelect:true,
+		idField:'id',
+		url:'modulo3/getTomadetiempos',
+		columns:[[//campos de la tabla
+			{field:'id',title:'id', hidden:true, 
+			editor:{
+				type:'numberbox'
+				}
+			},
+	
+			{field:'tiempo_muestra',title:'Toma de Tiempo',width:'50%',align:'center',
+				editor:{
+					type:'text'
+				}
+			},
+			
+			//campo con opciones de guardar o cancelar
+			{field:'action',title:'Acciones',width:'50%',align:'center',
+				formatter:function(value,row,index){
+					if (row.editing){
+						var s = '<a href="#" onclick="saverow(this)">Guardar</a> ';
+						var c = '<a href="#" onclick="cancelrow(this)">Cancelar</a>';
+						return s+c;
+					} else {
+						var e = '<a href="#" onclick="editrow(this)">Editar</a> ';
+						var d = '<a href="#" onclick="deleterow(this)">Eliminar</a>';
+						return e+d;
+					}
+				}
+			}
+		]],
+		onBeforeEdit:function(index,row){
+			row.editing = true;
+			updateActions(index);
+		},
+		onAfterEdit:function(index,row){
+		            var i = 0;
+					var subtotal ="0:0:0";
+					
+				    var rows = $('#tt').datagrid('getRows');    // get current page rows
+					for(i = 0; i<$('#tt').datagrid('getData').total; i++)
+					{
+						var row_post = rows[i];
+						
+						//agregar ceros al inicio para completar el tipo tiempo
+						//variable2 = "00:"+row_post.tiempo_muestra
+
+						subtotal = sumartiempo(subtotal,row_post.tiempo_muestra);
+				        _subtotal_en_tiempo = segundosentiempo(subtotal)
+						
+					}	
+				
+					
+				
+					
+					
+					//conversión de los valores del modelo en tipo decimal de JS
+					_supFisico = $("#supFisico option:selected").val();
+					_supFisico1 = _supFisico.replace(",", ".");
+					_supFisico2 = Number(_supFisico1);
+					
+					_supMental = $("#supMental option:selected").val();
+					_supMental1 = _supMental.replace(",", ".");
+					_supMental2 = Number(_supMental1);
+					
+					_supGenero = $("#supGenero option:selected").val();
+					_supGenero1 =_supGenero.replace(",", ".");
+					_supGenero2 = Number(_supGenero1);
+					
+					_supAmbiental = $("#supAmbiental option:selected").val();
+					_supAmbienta1 = _supAmbiental.replace(",", ".");
+					_supAmbienta2 = Number(_supAmbienta1);
+					
+					
+					_calHabilidad = $("#calHabilidad option:selected").val();
+					_calHabilidad1 = _calHabilidad.replace(",", ".");
+					_calHabilidad2 = Number(_calHabilidad1);
+					
+					_calConsistencia = $("#calConsistencia option:selected").val();
+					_calConsistencia1 = _calConsistencia.replace(",", ".");
+				    _calConsistencia2 = Number(_calConsistencia1);
+					
+					_calEsfuerzo = $("#calEsfuerzo option:selected").val();
+					_calEsfuerzo1 = _calEsfuerzo.replace(",", ".");
+					_calEsfuerzo2 = Number(_calEsfuerzo1);
+					
+			
+					
+					
+					
+					_repeticiones = $("#repeticiones").val();
+				
+					 
+				
+				
+				var _promedio = tiempoensegundos(subtotal)/Number($('#tt').datagrid('getData').total)
+				//para visualisar el promedio en formato tiempo
+				var _promedio_en_tiempo = segundosentiempo(_promedio)
+				
+				//suplemento monotonia se calcula con la función calcularmonotonia() línea 76
+				var _supMonotonia = calcularmonotonia(_promedio)
+				//se calcula el iempo estandard sumando los suplementos más _promedio
+				var _estandard =Math.round(_promedio +(_promedio*_supFisico2)+(_promedio*_supMental2)+(_promedio*_supGenero2)+(_promedio*_calHabilidad2)+	(_promedio*_calConsistencia2)+(_promedio*_calEsfuerzo2)+_supMonotonia)*_repeticiones
+				
+			    //mostrar tiempo estandard en formato de tiempo
+               var _estandard_en_tiempo= segundosentiempo(_estandard);
+			      _monotonia1=Math.round(_supMonotonia)
+				$("#monotonia").val(_monotonia1);
+				$("#promedio").val(_promedio_en_tiempo);		
+				$("#estandard").val(_estandard_en_tiempo) ;
+				
+		           
+		
+			///////////////////////////////////////////////////////////////////////////////////////////////////////
+			//esta condicional se utiliza para insertar campos o actualizar
+			if (row.id == "")
+            {
+              var request = $.ajax({
+					   url: "/modulo3/getTomadetiempos",
+					   type: "GET",
+					   data: {Actividad:Actividad_Id,Tiempos_Por_Actividad:row.tiempo_muestra},
+					   dataType: "json"
+					  });
+					  
+			     request.done(function( msg ) {
+					
+					row.id = Number(msg[0].Tiempo_Muestra_id)
+					Actividad_Id = Number(msg[0].nuevaactividad_id)
+					$("#calculodetiempos").val(Actividad_Id);
+					  });
+					  
+			     request.fail(function( jqXHR, textStatus ) {
+					alert( "Request failed: " + textStatus );
+					  });
+					  
+					
+			}
+			else
+			{
+				var request = $.ajax({
+						 url: "/modulo3/EditarTomadeTiempos",
+						 type: "GET",
+						 data: {Id: row.id,Tiempos_Por_Actividad:row.tiempo_muestra},
+						 dataType: "json"
+						  });
+						  
+						  request.done(function( msg ) {
+							alert("actualizado")
+							
+						  });
+						  
+						  request.fail(function( jqXHR, textStatus ) {
+						   //alert( "Request failed: " + textStatus );
+						  });
+			}
+			
+			row.editing = false;
+			updateActions(index);
+		},
+		onCancelEdit:function(index,row){
+			row.editing = false;
+			updateActions(index);
+		},
+		onBeginEdit:function(rowIndex){
+		
+		
+			}
+			
+			});
+	
+}
+		//funciones para actualizar guardar o cancelar
+function updateActions(index){
+	$('#tt').datagrid('updateRow',{
+		index: index	,
+		//row:{}
+	});	
+}
+function getRowIndex(target){
+	var tr = $(target).closest('tr.datagrid-row');
+	return parseInt(tr.attr('datagrid-row-index'));
+}
+function editrow(target){
+	$('#tt').datagrid('beginEdit', getRowIndex(target));
+}
+function deleterow(target){
+	$.messager.confirm('Confirmación','¿Está seguro de eliminar este registro?',function(r){
+		if (r){
+					var row = $('#tt').datagrid('getSelected'); 
+					//alert(JSON.stringify(ele));
+					
+					  var request = $.ajax({
+					   url: "/modulo3/EliminarTomadeTiempos",
+					   type: "GET",
+					   data: { id: row.id},
+					   dataType: "json"
+					  });
+					  
+					  request.done(function( msg ) {
+						
+					  });
+					  
+					  request.fail(function( jqXHR, textStatus ) {
+					   //alert( "Request failed: " + textStatus );
+					  });
+
+					$('#tt').datagrid('deleteRow', getRowIndex(target));
+				}
+				var i = 0;
+					var subtotal ="0:0";
+					
+				    var rows = $('#tt').datagrid('getRows');    // get current page rows
+					for(i = 0; i<$('#tt').datagrid('getData').total; i++)
+					{
+						var row_post = rows[i];
+						//variable2 = "00:"+row_post.tiempo_muestra
+
+						subtotal = sumartiempo(subtotal,row_post.tiempo_muestra);
+				        _subtotal_en_tiempo = segundosentiempo(subtotal)
+						
+						
+					}	
+				
+					
+				
+					
+					
+					//conversión de los valores del modelo en tipo decimal de JS
+					_supFisico = $("#supFisico option:selected").val();
+					_supFisico1 = _supFisico.replace(",", ".");
+					_supFisico2 = Number(_supFisico1);
+					
+					_supMental = $("#supMental option:selected").val();
+					_supMental1 = _supMental.replace(",", ".");
+					_supMental2 = Number(_supMental1);
+					
+					_supGenero = $("#supGenero option:selected").val();
+					_supGenero1 =_supGenero.replace(",", ".");
+					_supGenero2 = Number(_supGenero1);
+					
+					_supAmbiental = $("#supAmbiental option:selected").val();
+					_supAmbienta1 = _supAmbiental.replace(",", ".");
+					_supAmbienta2 = Number(_supAmbienta1);
+					
+					
+					_calHabilidad = $("#calHabilidad option:selected").val();
+					_calHabilidad1 = _calHabilidad.replace(",", ".");
+					_calHabilidad2 = Number(_calHabilidad1);
+					
+					_calConsistencia = $("#calConsistencia option:selected").val();
+					_calConsistencia1 = _calConsistencia.replace(",", ".");
+				    _calConsistencia2 = Number(_calConsistencia1);
+					
+					_calEsfuerzo = $("#calEsfuerzo option:selected").val();
+					_calEsfuerzo1 = _calEsfuerzo.replace(",", ".");
+					_calEsfuerzo2 = Number(_calEsfuerzo1);
+					
+					_repeticiones = $("#repeticiones").val();
+				
+					 
+				
+				
+				var _promedio = tiempoensegundos(subtotal)/Number($('#tt').datagrid('getData').total)
+				//para visualisar el promedio en formato tiempo
+				var _promedio_en_tiempo = segundosentiempo(_promedio)
+				
+				//suplemento monotonia se calcula con la función calcularmonotonia() línea 76
+				var _supMonotonia = calcularmonotonia(_promedio)
+				//se calcula el iempo estandard sumando los suplementos más _promedio
+				var _estandard =Math.round(_promedio +(_promedio*_supFisico2)+(_promedio*_supMental2)+(_promedio*_supGenero2)+(_promedio*_calHabilidad2)+	(_promedio*_calConsistencia2)+(_promedio*_calEsfuerzo2)+_supMonotonia)*_repeticiones
+				
+			    //mostrar tiempo estandard en formato de tiempo
+               var _estandard_en_tiempo= segundosentiempo(_estandard);
+			      _monotonia1=Math.round(_supMonotonia)
+				$("#monotonia").val(_monotonia1);
+				$("#promedio").val(_promedio_en_tiempo);		
+				$("#estandard").val(_estandard_en_tiempo) ;
+				
+		           
+				
+				
+
+				
+	});
+}
+function saverow(target){
+	$('#tt').datagrid('endEdit', getRowIndex(target));
+}
+function cancelrow(target){
+	$('#tt').datagrid('cancelEdit', getRowIndex(target));
+}
+function insert(){
+	var row = $('#tt').datagrid('getSelected');
+	if (row){
+		var index = $('#tt').datagrid('getRowIndex', row);
+	} else {
+		index = 0;
+	}
+	$('#tt').datagrid('insertRow', {
+		index: index,
+		row:{
+			//status:'P'
+		}
+	});
+	$('#tt').datagrid('selectRow',index);
+	$('#tt').datagrid('beginEdit',index);
+}
+
+$( window ).load(function() {//funcion para que se cargue la grilla
+  loadGrid();
+  //loadFranjas();
+});
+
+
+</script>
+
+
+
+<form method="post" class="form-horizontal" class = "form-inline">
+{% csrf_token %}
+
+
+			<div class="titulosbalanceo" align="center">REALICE LA TOMA DE TIEMPOS POR ACTIVIDAD</div>
+
+<br>
+<br>
+
+
+
+<div align ="center"><p> Ingrese una actividad  con sus respectivos valores de suplementos y calificaciones:</p></div>
+
+<fieldset class="module aligned">
+
+<div class = "row">
+		<div class="form-group col-md-4"></div>
+		<div class="form-group col-md-4">
+		    <label for="Actividad" class=" col-sm-4 control-label"><big>Actividad:</big></label>
+		    <div class="col-sm-6">
+		      <input type="text" class="form-control" name = "Actividad"id="Actividad" placeholder="Ingrese una actividad" required maxlength = "50">
+		    </div>
+		</div>   
+		<div class="form-group col-md-4"></div>
+</div>
+
+</div>
+
+<!-- Suplementos y calificaciones-->
+<div class = "row">
+	<div class="form-group col-md-6">	
+		<div class ="form-horizontal">
+
+				<br>
+				<div ><h3>Suplementos</h3></div>
+				<br>
+			
+				<div class="form-group" >
+					<label for="supFisico" class="col-sm-2 control-label">Físico : </label>
+						<div class="col-sm-6">
+							<select name="supFisico" id="supFisico" class = "form-control">
+					    		{% if suplementofisico %}
+									<option value="0">Selecione un valor de suplemento</option>
+					            	{% for i in suplementofisico %}
+							        	<option value="{{i.S_Fisico}}"> {{i.Descripcion}} </option>
+					            	{% endfor %}
+					    		{% else %}
+						    		<option value="0">... no hay ningún suplemento selecionado</option>
+					    		{% endif %}
+					   		</select>
+					   	</div>
+		        </div>
+
+				<div class="form-group"  >
+					<label for="supMental" class="col-sm-2 control-label">Mental : </label>
+				  		<div class="col-sm-6">
+				       		<select name="supMental" id="supMental" class = "form-control">
+					    		{% if suplementomental %}
+									<option value="0">Selecione un valor de suplemento</option>
+									{% for i in suplementomental %}
+										<option value="{{i.S_Mental}}"> {{i.Descripcion}}</option>
+									{% endfor %}
+								{% else %}
+						    		<option value="0">... no hay ningún suplemento selecionado</option>
+					     		{% endif %}
+							</select>
+				     	</div>
+		       </div>
+
+
+				<div class="form-group" >
+					<label for="supGenero" class="col-sm-2 control-label" >Género: </label>
+				     	<div class="col-sm-6">
+				       		<select name="supGenero" id="supGenero" class = "form-control" default = 0>
+				       	 		{% if suplementogenero %}
+									<option value="0">Selecione un valor de suplemento</option>
+									{% for i in suplementogenero %}
+										<option value="{{i.S_Genero }}">{{i.Descripcion}} </option>
+									{% endfor %}
+								{% else %}
+									<option value="0">... no hay ningún suplemento selecionado</option>
+								{% endif %}
+							</select>	
+				 		</div>
+				 
+				</div>
+
+				<div class="form-group"  >
+					<label for="supAmbiental" class="col-sm-2 control-label" style="text-align:center">Ambiental: </label>
+				     	<div class="col-sm-6">
+				       		<select name="supAmbiental" id="supAmbiental" class = "form-control">
+				       			{% if suplementoambiental %}
+									<option value="0">Selecione un valor de suplemento</option>
+									{% for i in suplementoambiental %}
+										<option value="{{i.S_Ambiental}}">{{i.Descripcion}} </option>
+									{% endfor %}
+								{% else %}
+									<option value="0">... no hay ningún suplemento selecionado</option>
+								{% endif %}
+							</select>	
+						</div>
+
+				</div>
+
+		</div>
+	</div>
+
+	<div class="form-group col-md-6">
+		<div class="form-horizontal">
+				<br>
+				<div><h3>Calificaciones</h3></div>
+				<br>
+
+				<div class="form-group">
+					<label for="calHabilidad" class="col-sm-2 control-label">Habilidad : </label>
+						<div class="col-sm-6">
+							<select name="calHabilidad" id="calHabilidad" class = "form-control">
+								{% if calificacionhabilidad %}
+									<option value="0">Selecione un valor de calficación</option>
+									{% for i in calificacionhabilidad %}
+										<option value="{{i.C_Habilidad }}">{{i.Descripcion}} </option>
+									{% endfor %}
+								{% else %}
+									<option value="0">... no hay ninguna calificación selecionada</option>
+								{% endif %}
+							</select>	
+						</div>
+
+				</div>
+
+
+				<div class="form-group">
+					<label for="calConsistencia" class="col-sm-2 control-label">Consistencia: </label>
+						<div class="col-sm-6">
+							<select name="calConsistencia" id="calConsistencia" class = "form-control">
+								{% if calificacionconsistencia %}
+									<option value="0">Selecione un valor de calficación</option>
+									{% for i in calificacionconsistencia %}
+										<option value="{{i.C_Consistencia }}">{{i.Descripcion}} </option>
+									{% endfor %}
+								{% else %}
+									<option value="0">... no hay ninguna calificación selecionada</option>
+								{% endif %}
+							</select>	
+						</div>
+
+				</div>
+
+					
+				<div class="form-group" >
+					<label for="calEsfuerzo" class="col-sm-2 control-label">Esfuerzo: </label>
+						<div class="col-sm-6">
+							<select name="calEsfuerzo" id="calEsfuerzo" class = "form-control">
+								{% if calificacionesfuerzo %}
+									<option value="0">Selecione un valor de calficación</option>
+									{% for i in calificacionesfuerzo %}
+										<option value="{{i.C_Esfuerzo }}">{{i.Descripcion}} </option>
+									{% endfor %}
+								{% else %}
+									<option value="0">... no hay ninguna calificación selecionada</option>
+							{% endif %}
+							</select>	
+						</div>	
+
+				</div>
+		</div>
+	</div>
+</div>
+
+
+
+
+
+<div  align ="center">
+	<br> <p><small >Digite la cantidad de veces que se  realiza esta actividad para la elaboración de un producto:</small></p>
+		</div>
+		<br>
+		<br>
+
+
+<div class = "row" >
+		<div class="form-group col-md-4"></div>
+
+		<div class="form-group col-md-4">
+    		<label for="repeticiones" class=" col-sm-4 control-label"><big>Repeticiones:</big></label>
+    		<div class="col-sm-6">
+      			<input type="text" class="form-control" name = "repeticiones"id="repeticiones" Value = 1>
+            </div>
+        </div>
+       <div class="form-group col-md-4"></div> 
+</div>	   
+<div align = "center">
+<h4><em>Ingrese la toma de tiempo en el siguiente formato: </em><u>HH:MM:SS</u></h4>
+</div>
+<br>
+<br>
+<div ="row">
+	<div class="form-group col-md-5"></div>
+		<div class="form-group col-md-4">
+			<a href="#"  class="btn btn-primary" onclick="insert()">Nueva toma de tiempo</a>
+		</div>
+	<div class="form-group col-md-3"></div>
+</div>
+<br>
+<br>
+<br>
+
+
+
+<div class="generalidadtabla" >
+<table id="tt"></table>
+</div>
+<br>
+<br>
+
+
+
+<div class ="row">
+
+		<div class="form-group col-md-4">
+
+		    <label for="monotonia" class=" col-sm-6 control-label"  style="text-align:rigth">Suplemento Monotonía:</label>
+		    <div class="col-sm-5">
+		      <input type="text" class="form-control"  name="monotonia" id= "monotonia" value = "0"onfocus="this.blur()">
+		    En segundos
+		    </div>
+		 </div>  
+		
+
+		<div class="form-group col-md-4">
+
+		    <label for="promedio" class=" col-lg-3 control-label"  style="text-align:rigth">Promedio:</label>
+		    <div class="col-sm-6">
+		      <input type="text" class="form-control"  name="promedio" id= "promedio" value = "0" align="center"onfocus="this.blur()"> HH:MM:SS
+		    </div>
+		 </div>  
+		
+
+
+		<div class="form-group col-md-4" class = "text-center">
+
+		    <label for="estandard" class=" col-sm-5 control-label"  style="text-align:rigth">Tiempo Estandard:</label>
+		    <div class="col-sm-6" >
+		      <input type="text" class="form-control"  name="estandard" id= "estandard"title = "Ingrese una actividad y por lo menos una toma de tiempo" required placeholder ="0:0:0" onfocus="this.blur()"> 
+		    </div>
+		 </div>
+</div>
+<div class ="row">	
+	<div class="form-group col-sm-5"></div>
+		</fieldset>
+		<div class="form-group col-sm-4">
+			<div class="submit-row">
+				<input type ="hidden" name = "calculodetiempos" id="calculodetiempos"/>
+		 		<input name="totaljornada" type="submit" class="btn btn-success" class="center-block" id="guardartomadetiempo" value = "GUARDAR"/>
+			</div>
+		</div>
+	<div class="form-group col-sm-4"></div>	
+
+</div>	
+
+
+
+
+
+</form>
+
+{% endblock %}
